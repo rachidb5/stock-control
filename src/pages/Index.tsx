@@ -5,8 +5,9 @@ import { SalesTable } from "@/components/SalesTable";
 import { soldDevices, stockDevices } from "@/data/mockData";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Package, TrendingUp, ShoppingCart, DollarSign, Plus } from "lucide-react";
+import { Package, TrendingUp, ShoppingCart, DollarSign, Plus, User } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState("overview");
@@ -34,9 +35,18 @@ const Index = () => {
       {/* Header */}
       <header className="border-b bg-card shadow-sm">
         <div className="container mx-auto px-4 py-6">
-          <div>
-            <h1 className="text-3xl font-bold text-foreground">Controle de Estoque</h1>
-            <p className="text-muted-foreground mt-1">Sistema de gerenciamento de aparelhos</p>
+          <div className="flex justify-between items-center">
+            <div>
+              <h1 className="text-3xl font-bold text-foreground">Controle de Estoque</h1>
+              <p className="text-muted-foreground mt-1">Sistema de gerenciamento de aparelhos</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" onClick={() => navigate("/auth")}>
+                <User className="h-4 w-4 mr-2" />
+                Entrar
+              </Button>
+              <ThemeToggle />
+            </div>
           </div>
         </div>
       </header>
