@@ -6,10 +6,11 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { StockDevice } from "@/data/mockData";
-import { Search, Eye, Edit, FileDown } from "lucide-react";
+import { Search, Eye, Edit, FileDown, Upload, FileSpreadsheet } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import * as XLSX from "xlsx";
 
 interface StockTableProps {
   devices: StockDevice[];
@@ -74,6 +75,42 @@ export const StockTable = ({ devices }: StockTableProps) => {
     doc.save(`estoque-${new Date().toISOString().split("T")[0]}.pdf`);
   };
 
+  const exportToExcel = () => {
+    const worksheetData = filteredDevices.map((device) => ({
+      "Modelo": device.modelo,
+      "Cor": device.cor,
+      "IMEI": device.imei,
+      "Fornecedor": device.fornecedor,
+      "Valor Unitário": device.valor_unitario,
+      "Observação": device.observacao || "-",
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(worksheetData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Estoque");
+    
+    XLSX.writeFile(workbook, `estoque-${new Date().toISOString().split("T")[0]}.xlsx`);
+  };
+
+  const handleImportExcel = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const data = e.target?.result;
+      const workbook = XLSX.read(data, { type: "binary" });
+      const sheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[sheetName];
+      const jsonData = XLSX.utils.sheet_to_json(worksheet);
+      
+      console.log("Dados importados:", jsonData);
+      // Aqui você pode processar os dados importados
+      // Por exemplo, atualizar o estado ou enviar para o backend
+    };
+    reader.readAsBinaryString(file);
+  };
+
   return (
     <Card className="shadow-md">
       <CardHeader>
@@ -82,10 +119,28 @@ export const StockTable = ({ devices }: StockTableProps) => {
             <CardTitle>Estoque Atual</CardTitle>
             <CardDescription>Aparelhos disponíveis para venda</CardDescription>
           </div>
-          <Button onClick={exportToPDF} variant="outline" size="sm">
-            <FileDown className="h-4 w-4 mr-2" />
-            Exportar PDF
-          </Button>
+          <div className="flex gap-2">
+            <Button onClick={exportToPDF} variant="outline" size="sm">
+              <FileDown className="h-4 w-4 mr-2" />
+              PDF
+            </Button>
+            <Button onClick={exportToExcel} variant="outline" size="sm">
+              <FileSpreadsheet className="h-4 w-4 mr-2" />
+              Excel
+            </Button>
+            <Button variant="outline" size="sm" asChild>
+              <label className="cursor-pointer">
+                <Upload className="h-4 w-4 mr-2" />
+                Importar
+                <input
+                  type="file"
+                  accept=".xlsx,.xls"
+                  onChange={handleImportExcel}
+                  className="hidden"
+                />
+              </label>
+            </Button>
+          </div>
         </div>
         <div className="space-y-4 mt-4">
           <div className="relative">

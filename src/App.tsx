@@ -11,6 +11,7 @@ import AddEditSale from "./pages/AddEditSale";
 import StockDetail from "./pages/StockDetail";
 import SaleDetail from "./pages/SaleDetail";
 import Auth from "./pages/Auth";
+import Clients from "./pages/Clients";
 
 const queryClient = new QueryClient();
 
@@ -30,6 +31,7 @@ const App = () => (
           <Route path="/sale/add" element={<AddEditSale />} />
           <Route path="/sale/edit/:imei" element={<AddEditSale />} />
           <Route path="/sale/:imei" element={<SaleDetail />} />
+          <Route path="/clients" element={<Clients />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

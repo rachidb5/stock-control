@@ -6,10 +6,11 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { SoldDevice } from "@/data/mockData";
-import { Search, CheckCircle2, XCircle, Eye, Edit, FileDown } from "lucide-react";
+import { Search, CheckCircle2, XCircle, Eye, Edit, FileDown, Upload, FileSpreadsheet } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import * as XLSX from "xlsx";
 
 interface SalesTableProps {
   devices: SoldDevice[];
@@ -75,19 +76,19 @@ export const SalesTable = ({ devices }: SalesTableProps) => {
     doc.text("Relatório de Vendas", 14, 15);
     
     const tableData = filteredDevices.map((device) => [
-      new Date(device.data).toLocaleDateString("pt-BR"),
       device.aparelho,
       device.cor,
+      device.imei,
       device.condicao,
-      device.comprador,
+      formatCurrency(device.valor_total_venda),
       formatCurrency(device.valor_compra),
-      device.aparelho_recebido ? formatCurrency(device.valor_total_venda) : "-",
-      device.aparelho_recebido ? formatCurrency(calculateProfit(device)) : "-",
+      formatCurrency(calculateProfit(device)),
       device.aparelho_recebido ? "Concluído" : "Pendente",
+      device.data,
     ]);
 
     autoTable(doc, {
-      head: [["Data", "Aparelho", "Cor", "Condição", "Comprador", "Valor Compra", "Valor Venda", "Lucro", "Status"]],
+      head: [["Aparelho", "Cor", "IMEI", "Condição", "Valor Venda", "Valor Custo", "Lucro", "Status", "Data"]],
       body: tableData,
       startY: 25,
       styles: { fontSize: 8 },
@@ -95,6 +96,48 @@ export const SalesTable = ({ devices }: SalesTableProps) => {
     });
 
     doc.save(`vendas-${new Date().toISOString().split("T")[0]}.pdf`);
+  };
+
+  const exportToExcel = () => {
+    const worksheetData = filteredDevices.map((device) => ({
+      "Aparelho": device.aparelho,
+      "Cor": device.cor,
+      "IMEI": device.imei,
+      "Condição": device.condicao,
+      "Comprador": device.comprador,
+      "Telefone": device.numero_telefone,
+      "Valor de Venda": device.valor_total_venda,
+      "Valor de Compra": device.valor_compra,
+      "Lucro": calculateProfit(device),
+      "Status": device.aparelho_recebido ? "Concluído" : "Pendente",
+      "Data": device.data,
+      "Observação": device.observacao,
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(worksheetData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Vendas");
+    
+    XLSX.writeFile(workbook, `vendas-${new Date().toISOString().split("T")[0]}.xlsx`);
+  };
+
+  const handleImportExcel = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const data = e.target?.result;
+      const workbook = XLSX.read(data, { type: "binary" });
+      const sheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[sheetName];
+      const jsonData = XLSX.utils.sheet_to_json(worksheet);
+      
+      console.log("Dados importados:", jsonData);
+      // Aqui você pode processar os dados importados
+      // Por exemplo, atualizar o estado ou enviar para o backend
+    };
+    reader.readAsBinaryString(file);
   };
 
   return (
@@ -105,10 +148,28 @@ export const SalesTable = ({ devices }: SalesTableProps) => {
             <CardTitle>Vendas Realizadas</CardTitle>
             <CardDescription>Histórico de aparelhos vendidos</CardDescription>
           </div>
-          <Button onClick={exportToPDF} variant="outline" size="sm">
-            <FileDown className="h-4 w-4 mr-2" />
-            Exportar PDF
-          </Button>
+          <div className="flex gap-2">
+            <Button onClick={exportToPDF} variant="outline" size="sm">
+              <FileDown className="h-4 w-4 mr-2" />
+              PDF
+            </Button>
+            <Button onClick={exportToExcel} variant="outline" size="sm">
+              <FileSpreadsheet className="h-4 w-4 mr-2" />
+              Excel
+            </Button>
+            <Button variant="outline" size="sm" asChild>
+              <label className="cursor-pointer flex items-center">
+                <Upload className="h-4 w-4 mr-2" />
+                Importar
+                <input
+                  type="file"
+                  accept=".xlsx,.xls"
+                  onChange={handleImportExcel}
+                  className="hidden"
+                />
+              </label>
+            </Button>
+          </div>
         </div>
         <div className="space-y-4 mt-4">
           <div className="relative">

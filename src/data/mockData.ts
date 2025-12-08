@@ -164,3 +164,72 @@ export const stockDevices: StockDevice[] = [
     valor_total_estoque: null,
   },
 ];
+
+export interface Client {
+  id: string;
+  nome: string;
+  cpf: string;
+  email: string;
+  telefone: string;
+  endereco: string;
+  cidade: string;
+  estado: string;
+  cep: string;
+  data_cadastro: string;
+  total_compras: number;
+}
+
+export const clients: Client[] = [
+  {
+    id: "1",
+    nome: "Carlos Silva",
+    cpf: "12345678901",
+    email: "carlos.silva@email.com",
+    telefone: "11987654321",
+    endereco: "Rua das Flores, 123",
+    cidade: "São Paulo",
+    estado: "SP",
+    cep: "01234567",
+    data_cadastro: "2025-01-15",
+    total_compras: 3,
+  },
+  {
+    id: "2",
+    nome: "Maria Santos",
+    cpf: "98765432109",
+    email: "maria.santos@email.com",
+    telefone: "11912345678",
+    endereco: "Av. Brasil, 456",
+    cidade: "São Paulo",
+    estado: "SP",
+    cep: "04567890",
+    data_cadastro: "2025-02-20",
+    total_compras: 1,
+  },
+  {
+    id: "3",
+    nome: "João Pereira",
+    cpf: "45678912305",
+    email: "joao.pereira@email.com",
+    telefone: "11945678901",
+    endereco: "Rua Central, 789",
+    cidade: "Campinas",
+    estado: "SP",
+    cep: "13000123",
+    data_cadastro: "2025-03-10",
+    total_compras: 2,
+  },
+  {
+    id: "4",
+    nome: "Ana Oliveira",
+    cpf: "78912345602",
+    email: "ana.oliveira@email.com",
+    telefone: "11998765432",
+    endereco: "Rua Nova, 321",
+    cidade: "Santos",
+    estado: "SP",
+    cep: "11000456",
+    data_cadastro: "2025-04-05",
+    total_compras: 5,
+  },
+];
