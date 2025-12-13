@@ -66,6 +66,12 @@ const AddEditSale = () => {
 
   const onSubmit = (data: SaleFormData) => {
     console.log(isEditing ? "Editando:" : "Adicionando:", data);
+       if(isEditing) {
+          console.log('editing')
+        } else {
+          soldDevices.push(data)
+          console.log(data)
+        }
     toast({
       title: isEditing ? "Venda atualizada!" : "Venda registrada!",
       description: `Venda de ${data.aparelho} foi ${isEditing ? "atualizada" : "registrada"}.`,

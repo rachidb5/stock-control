@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { StockDevice } from "@/data/mockData";
-import { Search, Eye, Edit, FileDown, Upload, FileSpreadsheet } from "lucide-react";
+import { Search, Eye, Edit, FileDown, Upload, FileSpreadsheet, ShoppingCart } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -225,6 +225,7 @@ export const StockTable = ({ devices }: StockTableProps) => {
                           variant="ghost"
                           size="sm"
                           onClick={() => navigate(`/stock/${device.imei}`)}
+                          title="Ver Detalhes"
                         >
                           <Eye className="h-4 w-4" />
                         </Button>
@@ -232,8 +233,18 @@ export const StockTable = ({ devices }: StockTableProps) => {
                           variant="ghost"
                           size="sm"
                           onClick={() => navigate(`/stock/edit/${device.imei}`)}
+                          title="Editar"
                         >
                           <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="default"
+                          size="sm"
+                          onClick={() => navigate(`/sell/${device.imei}`)}
+                          title="Vender"
+                          className="bg-primary hover:bg-primary/90"
+                        >
+                          <ShoppingCart className="h-4 w-4" />
                         </Button>
                       </div>
                     </TableCell>

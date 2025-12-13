@@ -16,8 +16,10 @@ import {
 import { useNavigate } from "react-router-dom";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Layout } from "@/components/Layout";
+import { useTabStore } from "@/stores/useTabStore";
 
 const Index = () => {
+  const { tab, setTab } = useTabStore();
   const [activeTab, setActiveTab] = useState("overview");
   const navigate = useNavigate();
 
@@ -50,19 +52,20 @@ const Index = () => {
   return (
     <Layout>
       <div className="min-h-screen bg-background">
-
         {/* Main Content */}
         <main className="container mx-auto px-4 py-8">
           <Tabs
-            value={activeTab}
-            onValueChange={setActiveTab}
+            value={tab}
+            onValueChange={setTab}
             className="space-y-6"
           >
-            <TabsList className="grid w-full max-w-md grid-cols-3">
-              <TabsTrigger value="overview">Visão Geral</TabsTrigger>
-              <TabsTrigger value="stock">Estoque</TabsTrigger>
-              <TabsTrigger value="sales">Vendas</TabsTrigger>
-            </TabsList>
+            <Tabs value={tab} onValueChange={setTab}>
+              <TabsList className="grid w-full max-w-md grid-cols-3">
+                <TabsTrigger value="overview">Visão Geral</TabsTrigger>
+                <TabsTrigger value="stock">Estoque</TabsTrigger>
+                <TabsTrigger value="sales">Vendas</TabsTrigger>
+              </TabsList>
+            </Tabs>
 
             <TabsContent value="overview" className="space-y-6">
               {/* Stats Grid */}

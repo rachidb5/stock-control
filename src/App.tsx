@@ -12,6 +12,8 @@ import StockDetail from "./pages/StockDetail";
 import SaleDetail from "./pages/SaleDetail";
 import Auth from "./pages/Auth";
 import Clients from "./pages/Clients";
+import Account from "./pages/Account";
+import SellFromStock from "./pages/SellFromStock";
 
 const queryClient = new QueryClient();
 
@@ -24,6 +26,7 @@ const App = () => (
         <BrowserRouter>
         <Routes>
           <Route path="/" element={<Index />} />
+          <Route path="/stock" element={<Index />} />
           <Route path="/auth" element={<Auth />} />
           <Route path="/stock/add" element={<AddEditStock />} />
           <Route path="/stock/edit/:imei" element={<AddEditStock />} />
@@ -31,7 +34,9 @@ const App = () => (
           <Route path="/sale/add" element={<AddEditSale />} />
           <Route path="/sale/edit/:imei" element={<AddEditSale />} />
           <Route path="/sale/:imei" element={<SaleDetail />} />
+          <Route path="/sell/:imei" element={<SellFromStock />} />
           <Route path="/clients" element={<Clients />} />
+          <Route path="/conta" element={<Account />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

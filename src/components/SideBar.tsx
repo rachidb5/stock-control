@@ -17,11 +17,10 @@ import {
 
 const menuItems = [
   { title: "Estoque", url: "/", icon: Package },
-  { title: "Clientes", url: "/clients", icon: Users },
 ];
 
 const settingsItems = [
-  { title: "Conta", url: "/auth", icon: User },
+  { title: "Conta", url: "/conta", icon: User },
 ];
 
 export function AppSidebar() {

@@ -8,16 +8,17 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { ArrowLeft } from "lucide-react";
-import { stockDevices, StockDevice } from "@/data/mockData";
+import { stockDevices } from "@/data/mockData";
 import { toast } from "@/hooks/use-toast";
+import { masks, validators } from "@/hooks/use-masks";
 
 const stockSchema = z.object({
-  modelo: z.string().min(1, "Modelo é obrigatório").max(100),
-  cor: z.string().min(1, "Cor é obrigatória").max(50),
-  fornecedor: z.string().min(1, "Fornecedor é obrigatório").max(100),
-  imei: z.string().min(1, "IMEI é obrigatório").max(50),
-  observacao: z.string().max(500),
-  valor_unitario: z.number().min(0, "Valor deve ser positivo"),
+  modelo: z.string().min(1, "Modelo é obrigatório").max(100, "Modelo deve ter no máximo 100 caracteres"),
+  cor: z.string().min(1, "Cor é obrigatória").max(50, "Cor deve ter no máximo 50 caracteres"),
+  fornecedor: z.string().min(1, "Fornecedor é obrigatório").max(100, "Fornecedor deve ter no máximo 100 caracteres"),
+  imei: z.string().refine(val => validators.imei(val), "IMEI deve ter 15 dígitos"),
+  observacao: z.string().max(500, "Observação deve ter no máximo 500 caracteres").optional(),
+  valor_unitario: z.number().min(0.01, "Valor deve ser maior que zero"),
 });
 
 type StockFormData = z.infer<typeof stockSchema>;
@@ -50,6 +51,12 @@ const AddEditStock = () => {
 
   const onSubmit = (data: StockFormData) => {
     console.log(isEditing ? "Editando:" : "Adicionando:", data);
+    if(isEditing) {
+      console.log('editing')
+    } else {
+      stockDevices.push(data)
+      console.log(data)
+    }
     toast({
       title: isEditing ? "Produto atualizado!" : "Produto adicionado!",
       description: `${data.modelo} foi ${isEditing ? "atualizado" : "adicionado"} ao estoque.`,
@@ -128,33 +135,36 @@ const AddEditStock = () => {
                     )}
                   />
 
-                  <FormField
+                    <FormField
                     control={form.control}
                     name="imei"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>IMEI</FormLabel>
+                        <FormLabel>IMEI *</FormLabel>
                         <FormControl>
-                          <Input placeholder="359451183944323" {...field} disabled={isEditing} />
+                          <Input 
+                            placeholder="359451183944323" 
+                            {...field}
+                            onChange={(e) => field.onChange(masks.imei(e.target.value))}
+                            maxLength={15}
+                            disabled={isEditing} 
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
-
                   <FormField
                     control={form.control}
                     name="valor_unitario"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Valor Unitário (R$)</FormLabel>
+                        <FormLabel>Valor Unitário (R$) *</FormLabel>
                         <FormControl>
                           <Input
-                            type="number"
-                            step="0.01"
-                            placeholder="2300.00"
-                            {...field}
-                            onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                            placeholder="0,00"
+                            value={field.value ? masks.numberToCurrency(field.value) : ""}
+                            onChange={(e) => field.onChange(masks.currencyToNumber(e.target.value))}
                           />
                         </FormControl>
                         <FormMessage />

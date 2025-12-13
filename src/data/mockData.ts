@@ -1,31 +1,31 @@
 export interface SoldDevice {
-  data: string;
-  aparelho: string;
-  cor: string;
-  condicao: string;
-  imei: string;
-  fornecedor: string;
-  valor_compra: number;
-  comprador: string;
-  numero_telefone: string;
-  aparelho_recebido: boolean;
-  observacao: string;
-  valor_recebido: number;
-  preco_vista: number;
-  preco_cartao: number;
-  valor_entrega: number;
-  valor_capa_pelicula: number;
-  valor_total_venda: number;
+  data?: string;
+  aparelho?: string;
+  cor?: string;
+  condicao?: string;
+  imei?: string;
+  fornecedor?: string;
+  valor_compra?: number;
+  comprador?: string;
+  numero_telefone?: string;
+  aparelho_recebido?: boolean;
+  observacao?: string;
+  valor_recebido?: number;
+  preco_vista?: number;
+  preco_cartao?: number;
+  valor_entrega?: number;
+  valor_capa_pelicula?: number;
+  valor_total_venda?: number;
 }
 
 export interface StockDevice {
-  modelo: string;
-  cor: string;
-  fornecedor: string;
-  imei: string;
-  observacao: string;
-  valor_unitario: number;
-  valor_total_estoque: number | null;
+  modelo?: string;
+  cor?: string;
+  fornecedor?: string;
+  imei?: string;
+  observacao?: string;
+  valor_unitario?: number;
+  valor_total_estoque?: number | null;
 }
 
 export const soldDevices: SoldDevice[] = [
