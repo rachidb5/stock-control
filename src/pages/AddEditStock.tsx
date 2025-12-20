@@ -11,7 +11,7 @@ import { ArrowLeft } from "lucide-react";
 import { stockDevices } from "@/data/mockData";
 import { toast } from "@/hooks/use-toast";
 import { masks, validators } from "@/hooks/use-masks";
-
+import stockService, { StockItem } from "@/services/stockServices";
 const stockSchema = z.object({
   modelo: z.string().min(1, "Modelo é obrigatório").max(100, "Modelo deve ter no máximo 100 caracteres"),
   cor: z.string().min(1, "Cor é obrigatória").max(50, "Cor deve ter no máximo 50 caracteres"),
@@ -49,20 +49,39 @@ const AddEditStock = () => {
     },
   });
 
-  const onSubmit = (data: StockFormData) => {
+const onSubmit = async (data: StockItem) => {
+  try {
     console.log(isEditing ? "Editando:" : "Adicionando:", data);
-    if(isEditing) {
-      console.log('editing')
+
+    if (isEditing) {
+      console.log("editing");
+      // await stockService.updateStock(data.id, data); // exemplo
     } else {
-      stockDevices.push(data)
-      console.log(data)
+      stockDevices.push(data);
+      await stockService.createStock(data);
     }
+
     toast({
       title: isEditing ? "Produto atualizado!" : "Produto adicionado!",
-      description: `${data.modelo} foi ${isEditing ? "atualizado" : "adicionado"} ao estoque.`,
+      description: `${data.modelo} foi ${
+        isEditing ? "atualizado" : "adicionado"
+      } ao estoque.`,
     });
+
     navigate("/");
-  };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  } catch (error: any) {
+    console.error("Erro ao salvar produto:", error);
+
+    toast({
+      title: "Erro ao salvar produto",
+      description:
+        error?.response?.data?.message ||
+        "Não foi possível salvar o produto. Tente novamente.",
+      variant: "destructive",
+    });
+  }
+};
 
   return (
     <div className="min-h-screen bg-background">

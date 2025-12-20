@@ -111,7 +111,7 @@ const Index = () => {
                   Adicionar ao Estoque
                 </Button>
               </div>
-              <StockTable devices={stockDevices} />
+              <StockTable />
             </TabsContent>
 
             <TabsContent value="sales" className="space-y-4">
