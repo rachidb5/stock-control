@@ -364,7 +364,7 @@ export const StockTable = ({ refreshTrigger, initialSearch = "", onStatsUpdate }
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => navigate(`/stock/${device.imei}`)}
+                              onClick={() => navigate(`/stock/${device.id}`)}
                               title="Ver Detalhes"
                             >
                               <Eye className="h-4 w-4" />
@@ -372,7 +372,7 @@ export const StockTable = ({ refreshTrigger, initialSearch = "", onStatsUpdate }
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => navigate(`/stock/edit/${device.imei}`)}
+                              onClick={() => navigate(`/stock/edit/${device.id}`)}
                               title="Editar"
                             >
                               <Edit className="h-4 w-4" />

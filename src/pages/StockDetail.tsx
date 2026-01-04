@@ -17,15 +17,15 @@ import { toast } from "sonner";
 const StockDetail = () => {
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
-  const { imei } = useParams();
-
-  const device = stockDevices.find((d) => d.imei === imei);
+  const { id } = useParams();
+  const [device, setDevice] = useState<StockItem>(null)
   const fetchItem = useCallback(async () => {
     try {
       setLoading(true);
 
-      const response: StockItem = await stockService.getStockByImei(imei);
+      const response: StockItem = await stockService.getStockById(id);
       console.log(response);
+      setDevice(response)
     } catch (error) {
       console.error("Erro ao buscar estoque:", error);
       toast.error("Erro ao carregar estoque. Tente novamente.");
@@ -38,7 +38,7 @@ const StockDetail = () => {
     fetchItem();
   }, []);
 
-  if (!device) {
+  if (!device && loading === false) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <Card className="w-full max-w-md">
@@ -65,14 +65,14 @@ const StockDetail = () => {
       currency: "BRL",
     }).format(value);
   };
-  // if (loading) {
-  //   return (
-  //     <div className="flex flex-col justify-center items-center py-12 space-y-4">
-  //       <Loader2 className="h-8 w-8 animate-spin text-primary" />
-  //       <span className="text-muted-foreground">Carregando estoque...</span>
-  //     </div>
-  //   );
-  // }
+   if (loading) {
+     return (
+       <div className="flex flex-col justify-center items-center py-12 space-y-4">
+         <Loader2 className="h-8 w-8 animate-spin text-primary" />
+         <span className="text-muted-foreground">Carregando item...</span>
+       </div>
+     );
+   }
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b bg-card shadow-sm">
@@ -95,7 +95,7 @@ const StockDetail = () => {
                 Informações completas do item em estoque
               </p>
             </div>
-            <Button onClick={() => navigate(`/stock/edit/${device.imei}`)}>
+            <Button onClick={() => navigate(`/stock/edit/${device.id}`)}>
               <Edit className="mr-2 h-4 w-4" />
               Editar
             </Button>
@@ -152,7 +152,7 @@ const StockDetail = () => {
                   {formatCurrency(device.valor_unitario)}
                 </p>
               </div>
-              {device.valor_total_estoque !== null && (
+              {/* {device.valor_total_estoque !== null && (
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">
                     Valor Total em Estoque
@@ -161,7 +161,7 @@ const StockDetail = () => {
                     {formatCurrency(device.valor_total_estoque)}
                   </p>
                 </div>
-              )}
+              )} */}
             </CardContent>
           </Card>
 
@@ -184,7 +184,7 @@ const StockDetail = () => {
 
         <div className="mt-6 flex gap-4">
           <Button
-            onClick={() => navigate(`/stock/edit/${device.imei}`)}
+            onClick={() => navigate(`/stock/edit/${device.id}`)}
             size="lg"
           >
             <Edit className="mr-2 h-4 w-4" />

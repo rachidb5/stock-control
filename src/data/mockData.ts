@@ -19,6 +19,7 @@ export interface SoldDevice {
 }
 
 export interface StockDevice {
+  id?: string;
   modelo?: string;
   cor?: string;
   fornecedor?: string;

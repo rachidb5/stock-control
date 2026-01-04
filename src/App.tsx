@@ -29,8 +29,8 @@ const App = () => (
           <Route path="/stock" element={<Index />} />
           <Route path="/auth" element={<Auth />} />
           <Route path="/stock/add" element={<AddEditStock />} />
-          <Route path="/stock/edit/:imei" element={<AddEditStock />} />
-          <Route path="/stock/:imei" element={<StockDetail />} />
+          <Route path="/stock/edit/:id" element={<AddEditStock />} />
+          <Route path="/stock/:id" element={<StockDetail />} />
           <Route path="/sale/add" element={<AddEditSale />} />
           <Route path="/sale/edit/:imei" element={<AddEditSale />} />
           <Route path="/sale/:imei" element={<SaleDetail />} />
