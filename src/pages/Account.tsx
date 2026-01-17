@@ -13,16 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
-import {
-  User,
-  Mail,
-  Phone,
-  MapPin,
-  Building,
-  Save,
-  LogOut,
-  Camera,
-} from "lucide-react";
+import { User, Mail, Phone, MapPin, Building, Save, LogOut, Camera, UserPlus } from "lucide-react";
 import { Layout } from "@/components/Layout";
 import { masks, validators } from "@/hooks/use-masks";
 
@@ -145,6 +136,14 @@ const Account = () => {
             </CardHeader>
             <CardContent className="space-y-4">
               <Separator />
+                <Button
+              variant="outline"
+              className="w-full"
+              onClick={() => navigate("/conta/criar")}
+            >
+              <UserPlus className="mr-2 h-4 w-4" />
+              Criar Usuário
+            </Button>
               <Button
                 variant="destructive"
                 className="w-full"

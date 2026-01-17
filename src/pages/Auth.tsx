@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -5,26 +6,35 @@ import * as z from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { LogIn, UserPlus } from "lucide-react";
+import authService from "@/services/authService";
 
 const loginSchema = z.object({
   email: z.string().email("Email inválido"),
   password: z.string().min(6, "Senha deve ter no mínimo 6 caracteres"),
 });
 
-const signupSchema = z.object({
-  name: z.string().min(2, "Nome deve ter no mínimo 2 caracteres"),
-  email: z.string().email("Email inválido"),
-  password: z.string().min(6, "Senha deve ter no mínimo 6 caracteres"),
-  confirmPassword: z.string(),
-}).refine((data) => data.password === data.confirmPassword, {
-  message: "As senhas não coincidem",
-  path: ["confirmPassword"],
-});
+const signupSchema = z
+  .object({
+    name: z.string().min(2, "Nome deve ter no mínimo 2 caracteres"),
+    email: z.string().email("Email inválido"),
+    password: z.string().min(6, "Senha deve ter no mínimo 6 caracteres"),
+    confirmPassword: z.string(),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "As senhas não coincidem",
+    path: ["confirmPassword"],
+  });
 
 type LoginFormData = z.infer<typeof loginSchema>;
 type SignupFormData = z.infer<typeof signupSchema>;
@@ -42,14 +52,27 @@ const Auth = () => {
     resolver: zodResolver(signupSchema),
   });
 
-  const onLogin = (data: LoginFormData) => {
-    console.log("Login data:", data);
-    toast({
-      title: "Login simulado",
-      description: "Backend não implementado ainda",
-    });
-    // Simular login bem-sucedido
-    navigate("/");
+  const onLogin = async (data: LoginFormData) => {
+    try {
+      const response = await authService.login(data);
+
+      // Exemplo: salvar token (ajuste conforme sua arquitetura)
+      localStorage.setItem("accessToken", response.accessToken);
+
+      toast({
+        title: "Login realizado com sucesso",
+        description: `Bem-vindo!`,
+      });
+
+      navigate("/");
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Erro ao fazer login",
+        description:
+          error?.message || "Verifique suas credenciais e tente novamente",
+      });
+    }
   };
 
   const onSignup = (data: SignupFormData) => {
@@ -82,7 +105,10 @@ const Auth = () => {
             </TabsList>
 
             <TabsContent value="login">
-              <form onSubmit={loginForm.handleSubmit(onLogin)} className="space-y-4">
+              <form
+                onSubmit={loginForm.handleSubmit(onLogin)}
+                className="space-y-4"
+              >
                 <div className="space-y-2">
                   <Label htmlFor="login-email">Email</Label>
                   <Input
@@ -121,7 +147,10 @@ const Auth = () => {
             </TabsContent>
 
             <TabsContent value="signup">
-              <form onSubmit={signupForm.handleSubmit(onSignup)} className="space-y-4">
+              <form
+                onSubmit={signupForm.handleSubmit(onSignup)}
+                className="space-y-4"
+              >
                 <div className="space-y-2">
                   <Label htmlFor="signup-name">Nome</Label>
                   <Input

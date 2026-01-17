@@ -20,7 +20,7 @@ import { useTabStore } from "@/stores/useTabStore";
 
 const Index = () => {
   const { tab, setTab } = useTabStore();
-  const [activeTab, setActiveTab] = useState("overview");
+  const [activeTab, setActiveTab] = useState("stock");
   const navigate = useNavigate();
 
   // Calculate statistics
@@ -60,8 +60,8 @@ const Index = () => {
             className="space-y-6"
           >
             <Tabs value={tab} onValueChange={setTab}>
-              <TabsList className="grid w-full max-w-md grid-cols-3">
-                <TabsTrigger value="overview">Visão Geral</TabsTrigger>
+              <TabsList className="grid w-full max-w-md grid-cols-2">
+                {/* <TabsTrigger value="overview">Visão Geral</TabsTrigger> */}
                 <TabsTrigger value="stock">Estoque</TabsTrigger>
                 <TabsTrigger value="sales">Vendas</TabsTrigger>
               </TabsList>

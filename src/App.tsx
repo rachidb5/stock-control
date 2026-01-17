@@ -14,7 +14,7 @@ import Auth from "./pages/Auth";
 import Clients from "./pages/Clients";
 import Account from "./pages/Account";
 import SellFromStock from "./pages/SellFromStock";
-
+import CreateUser from "./pages/CreateUser";
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -37,6 +37,7 @@ const App = () => (
           <Route path="/sell/:imei" element={<SellFromStock />} />
           <Route path="/clients" element={<Clients />} />
           <Route path="/conta" element={<Account />} />
+          <Route path="/conta/criar" element={<CreateUser />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

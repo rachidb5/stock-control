@@ -128,7 +128,7 @@ const AddEditStock = () => {
     }
   };
 
-  if (loading) {
+  if (loading && isEditing) {
     return (
       <div className="flex flex-col justify-center items-center py-12 space-y-4">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />

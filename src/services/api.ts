@@ -1,8 +1,8 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'https://estoque-api.fly.dev',
-  timeout: 10000,
+  // baseURL: import.meta.env.VITE_API_URL || 'https://estoque-api.fly.dev',
+  baseURL: 'http://localhost:3000',
   headers: {
     'Content-Type': 'application/json',
   },
