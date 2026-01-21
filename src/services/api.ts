@@ -26,12 +26,20 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
-      localStorage.removeItem('accessToken');
-      // window.location.href = '/auth';
+    const status = error.response?.status;
+    const url = error.config?.url;
+
+    const isAuthRoute =
+      url?.includes("/auth/login") || url?.includes("/auth/register");
+
+    if (status === 401 && !isAuthRoute) {
+      localStorage.removeItem("accessToken");
+      window.location.href = "/auth";
     }
+
     return Promise.reject(error);
   }
 );
+
 
 export default api;
