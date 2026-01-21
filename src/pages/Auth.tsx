@@ -54,10 +54,10 @@ const Auth = () => {
 
   const onLogin = async (data: LoginFormData) => {
     try {
-      const response = await authService.login(data);
+      const response: any = await authService.login(data);
 
       // Exemplo: salvar token (ajuste conforme sua arquitetura)
-      localStorage.setItem("accessToken", response.accessToken);
+      localStorage.setItem("accessToken", response.access_token);
 
       toast({
         title: "Login realizado com sucesso",
@@ -66,6 +66,7 @@ const Auth = () => {
 
       navigate("/");
     } catch (error: any) {
+      console.log(error)
       toast({
         variant: "destructive",
         title: "Erro ao fazer login",
@@ -99,10 +100,10 @@ const Auth = () => {
         </CardHeader>
         <CardContent>
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-2 mb-4">
+            {/* <TabsList className="grid w-full grid-cols-2 mb-4">
               <TabsTrigger value="login">Login</TabsTrigger>
               <TabsTrigger value="signup">Cadastro</TabsTrigger>
-            </TabsList>
+            </TabsList> */}
 
             <TabsContent value="login">
               <form

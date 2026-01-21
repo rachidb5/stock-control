@@ -20,7 +20,6 @@ import { useTabStore } from "@/stores/useTabStore";
 
 const Index = () => {
   const { tab, setTab } = useTabStore();
-  const [activeTab, setActiveTab] = useState("stock");
   const navigate = useNavigate();
 
   // Calculate statistics
@@ -62,49 +61,13 @@ const Index = () => {
             <Tabs value={tab} onValueChange={setTab}>
               <TabsList className="grid w-full max-w-md grid-cols-2">
                 {/* <TabsTrigger value="overview">Visão Geral</TabsTrigger> */}
-                <TabsTrigger value="stock">Estoque</TabsTrigger>
+                <TabsTrigger value="overview">Estoque</TabsTrigger>
                 <TabsTrigger value="sales">Vendas</TabsTrigger>
               </TabsList>
             </Tabs>
 
-            <TabsContent value="overview" className="space-y-6">
-              {/* Stats Grid */}
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                <StatsCard
-                  title="Aparelhos em Estoque"
-                  value={totalStock.toString()}
-                  description="Total de itens disponíveis"
-                  icon={Package}
-                />
-                <StatsCard
-                  title="Valor do Estoque"
-                  value={formatCurrency(totalStockValue)}
-                  description="Valor total investido"
-                  icon={DollarSign}
-                />
-                <StatsCard
-                  title="Vendas Concluídas"
-                  value={totalSales.toString()}
-                  description={`${soldDevices.length - totalSales} pendentes`}
-                  icon={ShoppingCart}
-                />
-                <StatsCard
-                  title="Lucro Total"
-                  value={formatCurrency(totalProfit)}
-                  description={`Receita: ${formatCurrency(totalRevenue)}`}
-                  icon={TrendingUp}
-                  trend={{
-                    value: `${((totalProfit / totalCost) * 100).toFixed(1)}%`,
-                    positive: totalProfit > 0,
-                  }}
-                />
-              </div>
 
-              {/* Recent Sales Preview */}
-              <SalesTable devices={soldDevices.slice(0, 5)} />
-            </TabsContent>
-
-            <TabsContent value="stock" className="space-y-4">
+            <TabsContent value="overview" className="space-y-4">
               <div className="flex justify-end">
                 <Button onClick={() => navigate("/stock/add")}>
                   <Plus className="mr-2 h-4 w-4" />
