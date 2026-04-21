@@ -3,16 +3,37 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Package, User, DollarSign } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { ArrowLeft, Package, User, DollarSign, Loader2 } from "lucide-react";
 import { stockDevices, clients } from "@/data/mockData";
-import { toast } from "@/hooks/use-toast";
 import { masks, validators } from "@/hooks/use-masks";
+import { useCallback, useEffect, useState } from "react";
+import stockService, { StockItem } from "@/services/stockServices";
+import { toast } from "sonner";
 
 const sellSchema = z.object({
   // Device info (from stock)
@@ -22,13 +43,21 @@ const sellSchema = z.object({
   fornecedor: z.string().min(1, "Fornecedor é obrigatório"),
   valor_compra: z.number().min(0, "Valor de compra deve ser positivo"),
   condicao: z.string().min(1, "Condição é obrigatória"),
-  
+
   // Buyer info
   comprador: z.string().min(1, "Nome do comprador é obrigatório"),
-  cpf_comprador: z.string().refine(val => validators.cpf(val), "CPF inválido"),
-  telefone_comprador: z.string().refine(val => validators.phone(val), "Telefone inválido"),
-  email_comprador: z.string().email("Email inválido").optional().or(z.literal("")),
-  
+  cpf_comprador: z
+    .string()
+    .refine((val) => validators.cpf(val), "CPF inválido"),
+  telefone_comprador: z
+    .string()
+    .refine((val) => validators.phone(val), "Telefone inválido"),
+  email_comprador: z
+    .string()
+    .email("Email inválido")
+    .optional()
+    .or(z.literal("")),
+
   // Sale values
   preco_vista: z.number().min(0, "Valor deve ser positivo"),
   preco_cartao: z.number().min(0, "Valor deve ser positivo"),
@@ -42,65 +71,96 @@ type SellFormData = z.infer<typeof sellSchema>;
 
 const SellFromStock = () => {
   const navigate = useNavigate();
-  const { imei } = useParams();
+  const { id } = useParams();
+  const [loading, setLoading] = useState(true);
+  const [device, setDevice] = useState<StockItem>(null);
 
-  const device = stockDevices.find(d => d.imei === imei);
+// FETCH
+useEffect(() => {
+  if (!id) return;
 
-  const form = useForm<SellFormData>({
-    resolver: zodResolver(sellSchema),
-    defaultValues: device ? {
-      aparelho: device.modelo,
-      cor: device.cor,
-      imei: device.imei,
-      fornecedor: device.fornecedor,
-      valor_compra: device.valor_unitario,
-      condicao: device.observacao.toLowerCase().includes("quebrada") ? "Tela quebrada" : "Seminovo",
-      comprador: "",
-      cpf_comprador: "",
-      telefone_comprador: "",
-      email_comprador: "",
-      preco_vista: 0,
-      preco_cartao: 0,
-      valor_entrega: 0,
-      valor_capa_pelicula: 0,
-      aparelho_recebido: true,
-      observacao: device.observacao,
-    } : {
-      aparelho: "",
-      cor: "",
-      imei: "",
-      fornecedor: "",
-      valor_compra: 0,
-      condicao: "",
-      comprador: "",
-      cpf_comprador: "",
-      telefone_comprador: "",
-      email_comprador: "",
-      preco_vista: 0,
-      preco_cartao: 0,
-      valor_entrega: 0,
-      valor_capa_pelicula: 0,
-      aparelho_recebido: true,
-      observacao: "",
-    },
+  const fetchItem = async () => {
+    try {
+      setLoading(true);
+
+      const response = await stockService.getStockById(id);
+      setDevice(response);
+    } catch (error) {
+      console.error("Erro ao buscar estoque:", error);
+      toast.error("Erro ao carregar estoque. Tente novamente.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  fetchItem();
+}, [id]);
+
+// FORM (SEM device aqui)
+const form = useForm<SellFormData>({
+  resolver: zodResolver(sellSchema),
+  defaultValues: {
+    aparelho: "",
+    cor: "",
+    imei: "",
+    fornecedor: "",
+    valor_compra: 0,
+    condicao: "",
+    comprador: "",
+    cpf_comprador: "",
+    telefone_comprador: "",
+    email_comprador: "",
+    preco_vista: 0,
+    preco_cartao: 0,
+    valor_entrega: 0,
+    valor_capa_pelicula: 0,
+    aparelho_recebido: true,
+    observacao: "",
+  },
+});
+
+// POPULAR FORM QUANDO device CHEGAR
+useEffect(() => {
+  if (!device) return;
+
+  form.reset({
+    aparelho: device.modelo,
+    cor: device.cor,
+    imei: device.imei,
+    fornecedor: device.fornecedor,
+    valor_compra: device.valor_unitario,
+    condicao: device.observacao?.toLowerCase().includes("quebrada")
+      ? "Tela quebrada"
+      : "Seminovo",
+    comprador: "",
+    cpf_comprador: "",
+    telefone_comprador: "",
+    email_comprador: "",
+    preco_vista: 0,
+    preco_cartao: 0,
+    valor_entrega: 0,
+    valor_capa_pelicula: 0,
+    aparelho_recebido: true,
+    observacao: device.observacao ?? "",
   });
+}, [device, form]);
 
   const watchPrecoVista = form.watch("preco_vista");
   const watchValorEntrega = form.watch("valor_entrega");
   const watchValorCapaPelicula = form.watch("valor_capa_pelicula");
-  const valorTotalVenda = watchPrecoVista + watchValorEntrega + watchValorCapaPelicula;
+  const valorTotalVenda =
+    watchPrecoVista + watchValorEntrega + watchValorCapaPelicula;
 
   const onSubmit = (data: SellFormData) => {
     console.log("Registrando venda:", data);
-    toast({
-      title: "Venda registrada!",
+    toast.success("Venda registrada!", {
       description: `${data.aparelho} vendido para ${data.comprador} por R$ ${valorTotalVenda.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
     });
     navigate("/sales");
   };
 
   const handleSelectClient = (clientId: string) => {
-    const client = clients.find(c => c.id === clientId);
+    const client = clients.find((c) => c.id === clientId);
     if (client) {
       form.setValue("comprador", client.nome);
       form.setValue("cpf_comprador", masks.cpf(client.cpf));
@@ -109,11 +169,22 @@ const SellFromStock = () => {
     }
   };
 
+  if (loading) {
+    return (
+      <div className="flex flex-col justify-center items-center py-12 space-y-4">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <span className="text-muted-foreground">Carregando item...</span>
+      </div>
+    );
+  }
+
   if (!device) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <Card className="p-6">
-          <p className="text-muted-foreground">Dispositivo não encontrado no estoque.</p>
+          <p className="text-muted-foreground">
+            Dispositivo não encontrado no estoque.
+          </p>
           <Button onClick={() => navigate("/stock")} className="mt-4">
             Voltar ao Estoque
           </Button>
@@ -126,11 +197,17 @@ const SellFromStock = () => {
     <div className="min-h-screen bg-background">
       <header className="border-b bg-card shadow-sm">
         <div className="container mx-auto px-4 py-6">
-          <Button variant="ghost" onClick={() => navigate("/stock")} className="mb-4">
+          <Button
+            variant="ghost"
+            onClick={() => navigate("/stock")}
+            className="mb-4"
+          >
             <ArrowLeft className="mr-2 h-4 w-4" />
             Voltar ao Estoque
           </Button>
-          <h1 className="text-3xl font-bold text-foreground">Registrar Venda</h1>
+          <h1 className="text-3xl font-bold text-foreground">
+            Registrar Venda
+          </h1>
           <p className="text-muted-foreground mt-1">
             Venda do produto em estoque
           </p>
@@ -213,10 +290,10 @@ const SellFromStock = () => {
                     <FormItem>
                       <FormLabel>Valor de Compra (R$)</FormLabel>
                       <FormControl>
-                        <Input 
-                          value={masks.numberToCurrency(field.value)} 
-                          disabled 
-                          className="bg-muted" 
+                        <Input
+                          value={masks.numberToCurrency(field.value)}
+                          disabled
+                          className="bg-muted"
                         />
                       </FormControl>
                       <FormMessage />
@@ -230,7 +307,10 @@ const SellFromStock = () => {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Condição</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <Select
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                      >
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Selecione a condição" />
@@ -240,8 +320,12 @@ const SellFromStock = () => {
                           <SelectItem value="Novo">Novo</SelectItem>
                           <SelectItem value="Seminovo">Seminovo</SelectItem>
                           <SelectItem value="Usado">Usado</SelectItem>
-                          <SelectItem value="Recondicionado">Recondicionado</SelectItem>
-                          <SelectItem value="Tela quebrada">Tela quebrada</SelectItem>
+                          <SelectItem value="Recondicionado">
+                            Recondicionado
+                          </SelectItem>
+                          <SelectItem value="Tela quebrada">
+                            Tela quebrada
+                          </SelectItem>
                         </SelectContent>
                       </Select>
                       <FormMessage />
@@ -268,7 +352,7 @@ const SellFromStock = () => {
                       <SelectValue placeholder="Escolha um cliente ou preencha manualmente" />
                     </SelectTrigger>
                     <SelectContent>
-                      {clients.map(client => (
+                      {clients.map((client) => (
                         <SelectItem key={client.id} value={client.id}>
                           {client.nome} - {masks.cpf(client.cpf)}
                         </SelectItem>
@@ -299,10 +383,12 @@ const SellFromStock = () => {
                       <FormItem>
                         <FormLabel>CPF *</FormLabel>
                         <FormControl>
-                          <Input 
-                            placeholder="000.000.000-00" 
+                          <Input
+                            placeholder="000.000.000-00"
                             {...field}
-                            onChange={(e) => field.onChange(masks.cpf(e.target.value))}
+                            onChange={(e) =>
+                              field.onChange(masks.cpf(e.target.value))
+                            }
                             maxLength={14}
                           />
                         </FormControl>
@@ -318,10 +404,12 @@ const SellFromStock = () => {
                       <FormItem>
                         <FormLabel>Telefone *</FormLabel>
                         <FormControl>
-                          <Input 
-                            placeholder="(00) 00000-0000" 
+                          <Input
+                            placeholder="(00) 00000-0000"
                             {...field}
-                            onChange={(e) => field.onChange(masks.phone(e.target.value))}
+                            onChange={(e) =>
+                              field.onChange(masks.phone(e.target.value))
+                            }
                             maxLength={15}
                           />
                         </FormControl>
@@ -337,7 +425,11 @@ const SellFromStock = () => {
                       <FormItem>
                         <FormLabel>Email</FormLabel>
                         <FormControl>
-                          <Input type="email" placeholder="email@exemplo.com" {...field} />
+                          <Input
+                            type="email"
+                            placeholder="email@exemplo.com"
+                            {...field}
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -354,7 +446,9 @@ const SellFromStock = () => {
                   <DollarSign className="h-5 w-5" />
                   Valores da Venda
                 </CardTitle>
-                <CardDescription>Defina os valores da transação</CardDescription>
+                <CardDescription>
+                  Defina os valores da transação
+                </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -367,8 +461,16 @@ const SellFromStock = () => {
                         <FormControl>
                           <Input
                             placeholder="0,00"
-                            value={field.value ? masks.numberToCurrency(field.value) : ""}
-                            onChange={(e) => field.onChange(masks.currencyToNumber(e.target.value))}
+                            value={
+                              field.value
+                                ? masks.numberToCurrency(field.value)
+                                : ""
+                            }
+                            onChange={(e) =>
+                              field.onChange(
+                                masks.currencyToNumber(e.target.value),
+                              )
+                            }
                           />
                         </FormControl>
                         <FormMessage />
@@ -385,8 +487,16 @@ const SellFromStock = () => {
                         <FormControl>
                           <Input
                             placeholder="0,00"
-                            value={field.value ? masks.numberToCurrency(field.value) : ""}
-                            onChange={(e) => field.onChange(masks.currencyToNumber(e.target.value))}
+                            value={
+                              field.value
+                                ? masks.numberToCurrency(field.value)
+                                : ""
+                            }
+                            onChange={(e) =>
+                              field.onChange(
+                                masks.currencyToNumber(e.target.value),
+                              )
+                            }
                           />
                         </FormControl>
                         <FormMessage />
@@ -403,8 +513,16 @@ const SellFromStock = () => {
                         <FormControl>
                           <Input
                             placeholder="0,00"
-                            value={field.value ? masks.numberToCurrency(field.value) : ""}
-                            onChange={(e) => field.onChange(masks.currencyToNumber(e.target.value))}
+                            value={
+                              field.value
+                                ? masks.numberToCurrency(field.value)
+                                : ""
+                            }
+                            onChange={(e) =>
+                              field.onChange(
+                                masks.currencyToNumber(e.target.value),
+                              )
+                            }
                           />
                         </FormControl>
                         <FormMessage />
@@ -421,8 +539,16 @@ const SellFromStock = () => {
                         <FormControl>
                           <Input
                             placeholder="0,00"
-                            value={field.value ? masks.numberToCurrency(field.value) : ""}
-                            onChange={(e) => field.onChange(masks.currencyToNumber(e.target.value))}
+                            value={
+                              field.value
+                                ? masks.numberToCurrency(field.value)
+                                : ""
+                            }
+                            onChange={(e) =>
+                              field.onChange(
+                                masks.currencyToNumber(e.target.value),
+                              )
+                            }
                           />
                         </FormControl>
                         <FormMessage />
@@ -434,7 +560,10 @@ const SellFromStock = () => {
                 <div className="flex items-center justify-between p-4 bg-primary/10 rounded-lg">
                   <span className="font-medium">Valor Total da Venda:</span>
                   <span className="text-2xl font-bold text-primary">
-                    R$ {valorTotalVenda.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                    R${" "}
+                    {valorTotalVenda.toLocaleString("pt-BR", {
+                      minimumFractionDigits: 2,
+                    })}
                   </span>
                 </div>
 
@@ -444,7 +573,9 @@ const SellFromStock = () => {
                   render={({ field }) => (
                     <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
                       <div className="space-y-0.5">
-                        <FormLabel className="text-base">Aparelho já recebido?</FormLabel>
+                        <FormLabel className="text-base">
+                          Aparelho já recebido?
+                        </FormLabel>
                         <p className="text-sm text-muted-foreground">
                           Marque se o aparelho já foi entregue ao cliente
                         </p>
@@ -483,7 +614,12 @@ const SellFromStock = () => {
               <Button type="submit" className="w-full md:w-auto">
                 Registrar Venda
               </Button>
-              <Button type="button" variant="outline" onClick={() => navigate("/stock")} className="w-full md:w-auto">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => navigate("/stock")}
+                className="w-full md:w-auto"
+              >
                 Cancelar
               </Button>
             </div>

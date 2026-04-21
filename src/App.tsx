@@ -34,7 +34,7 @@ const App = () => (
           <Route path="/sale/add" element={<AddEditSale />} />
           <Route path="/sale/edit/:imei" element={<AddEditSale />} />
           <Route path="/sale/:imei" element={<SaleDetail />} />
-          <Route path="/sell/:imei" element={<SellFromStock />} />
+          <Route path="/sell/:id" element={<SellFromStock />} />
           <Route path="/clients" element={<Clients />} />
           <Route path="/conta" element={<Account />} />
           <Route path="/conta/criar" element={<CreateUser />} />

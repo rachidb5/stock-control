@@ -389,7 +389,7 @@ export const StockTable = ({ refreshTrigger, initialSearch = "", onStatsUpdate }
                             <Button
                               variant="default"
                               size="sm"
-                              onClick={() => navigate(`/sell/${device.imei}`)}
+                              onClick={() => navigate(`/sell/${device.id}`)}
                               title="Vender"
                               className="bg-primary hover:bg-primary/90"
                             >
