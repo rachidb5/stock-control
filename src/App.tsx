@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import Index from "./pages/Index";
+import CommercialDashboard from "./pages/CommercialDashboard";
 import NotFound from "./pages/NotFound";
 import AddEditStock from "./pages/AddEditStock";
 import AddEditSale from "./pages/AddEditSale";
@@ -15,6 +16,7 @@ import Clients from "./pages/Clients";
 import Account from "./pages/Account";
 import SellFromStock from "./pages/SellFromStock";
 import CreateUser from "./pages/CreateUser";
+import StockPage from "./pages/StockPage";
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -26,7 +28,8 @@ const App = () => (
         <BrowserRouter>
         <Routes>
           <Route path="/" element={<Index />} />
-          <Route path="/stock" element={<Index />} />
+          <Route path="/painel-comercial" element={<CommercialDashboard />} />
+          <Route path="/stock" element={<StockPage />} />
           <Route path="/auth" element={<Auth />} />
           <Route path="/stock/add" element={<AddEditStock />} />
           <Route path="/stock/edit/:id" element={<AddEditStock />} />

@@ -3,19 +3,31 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Edit, ShoppingCart, User, DollarSign, CheckCircle2, XCircle, Loader2 } from "lucide-react";
+import { ArrowLeft, Edit, ShoppingCart, User, DollarSign, CheckCircle2, XCircle, Loader2, Store } from "lucide-react";
+import { soldDevices } from "@/data/mockData";
 import sellService, { SoldDevice } from "@/services/sellService";
 import { toast } from "sonner";
 
 const SaleDetail = () => {
   const navigate = useNavigate();
   const { id } = useParams();
+  const localSale = id ? soldDevices.find((sale) => sale.id === id) : null;
   const [device, setDevice] = useState<SoldDevice | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!id) return;
+    if (!id) {
+      setLoading(false);
+      return;
+    }
+
     const fetchSale = async () => {
+      if (localSale) {
+        setDevice(localSale);
+        setLoading(false);
+        return;
+      }
+
       try {
         setLoading(true);
         const data = await sellService.getSaleById(id);
@@ -28,7 +40,7 @@ const SaleDetail = () => {
       }
     };
     fetchSale();
-  }, [id, navigate]);
+  }, [id, localSale, navigate]);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("pt-BR", {
@@ -170,6 +182,15 @@ const SaleDetail = () => {
                   <p className="text-sm font-medium text-muted-foreground">Telefone</p>
                   <p className="text-lg">{device.numero_telefone}</p>
                 </div>
+                {device.vendedor_nome && (
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Vendedor responsável</p>
+                    <div className="flex items-center gap-2">
+                      <Store className="h-4 w-4 text-muted-foreground" />
+                      <p className="text-lg">{device.vendedor_nome}</p>
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>
@@ -248,7 +269,11 @@ const SaleDetail = () => {
             <Edit className="mr-2 h-4 w-4" />
             Editar Venda
           </Button>
-          <Button variant="outline" onClick={() => navigate("/")} size="lg">
+          <Button
+            variant="outline"
+            onClick={() => navigate(localSale ? "/painel-comercial" : "/")}
+            size="lg"
+          >
             Voltar para Vendas
           </Button>
         </div>

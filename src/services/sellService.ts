@@ -1,7 +1,7 @@
 import api from "./api";
 
 export interface SoldDevice {
-  id: number;
+  id: string | number;
   data: string;
   aparelho: string;
   cor: string;
@@ -19,6 +19,9 @@ export interface SoldDevice {
   valor_entrega: number;
   valor_capa_pelicula: number;
   valor_total_venda: number;
+  vendedor_id?: string;
+  vendedor_nome?: string;
+  canal_venda?: string;
 }
 
 export interface SoldDeviceResponse {
