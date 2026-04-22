@@ -1,4 +1,5 @@
 import { useNavigate, useParams } from "react-router-dom";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -8,9 +9,9 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { ArrowLeft } from "lucide-react";
-import { soldDevices } from "@/data/mockData";
-import { toast } from "@/hooks/use-toast";
+import { ArrowLeft, Loader2 } from "lucide-react";
+import sellService from "@/services/sellService";
+import { toast } from "sonner";
 
 const saleSchema = z.object({
   data: z.string().min(1, "Data é obrigatória"),
@@ -36,15 +37,15 @@ type SaleFormData = z.infer<typeof saleSchema>;
 
 const AddEditSale = () => {
   const navigate = useNavigate();
-  const { imei } = useParams();
-  const isEditing = !!imei;
-
-  const existingDevice = isEditing ? soldDevices.find(d => d.imei === imei) : null;
+  const { id } = useParams();
+  const isEditing = !!id;
+  const [fetching, setFetching] = useState(isEditing);
+  const [submitting, setSubmitting] = useState(false);
 
   const form = useForm<SaleFormData>({
     resolver: zodResolver(saleSchema),
-    defaultValues: existingDevice || {
-      data: new Date().toISOString().split('T')[0],
+    defaultValues: {
+      data: new Date().toISOString().split("T")[0],
       aparelho: "",
       cor: "",
       condicao: "",
@@ -64,20 +65,72 @@ const AddEditSale = () => {
     },
   });
 
-  const onSubmit = (data: SaleFormData) => {
-    console.log(isEditing ? "Editando:" : "Adicionando:", data);
-       if(isEditing) {
-          console.log('editing')
-        } else {
-          soldDevices.push(data)
-          console.log(data)
-        }
-    toast({
-      title: isEditing ? "Venda atualizada!" : "Venda registrada!",
-      description: `Venda de ${data.aparelho} foi ${isEditing ? "atualizada" : "registrada"}.`,
-    });
-    navigate("/");
+  useEffect(() => {
+    if (!isEditing || !id) return;
+    const fetchSale = async () => {
+      try {
+        setFetching(true);
+        const sale = await sellService.getSaleById(id);
+        form.reset({
+          data: sale.data.split("T")[0],
+          aparelho: sale.aparelho,
+          cor: sale.cor,
+          condicao: sale.condicao,
+          imei: sale.imei,
+          fornecedor: sale.fornecedor,
+          valor_compra: sale.valor_compra,
+          comprador: sale.comprador,
+          numero_telefone: sale.numero_telefone,
+          aparelho_recebido: sale.aparelho_recebido,
+          observacao: sale.observacao || "",
+          valor_recebido: sale.valor_recebido,
+          preco_vista: sale.preco_vista,
+          preco_cartao: sale.preco_cartao,
+          valor_entrega: sale.valor_entrega,
+          valor_capa_pelicula: sale.valor_capa_pelicula,
+          valor_total_venda: sale.valor_total_venda,
+        });
+      } catch {
+        toast.error("Erro ao carregar venda.");
+        navigate("/");
+      } finally {
+        setFetching(false);
+      }
+    };
+    fetchSale();
+  }, [id, isEditing, form, navigate]);
+
+  const onSubmit = async (data: SaleFormData) => {
+    try {
+      setSubmitting(true);
+      if (isEditing && id) {
+        await sellService.updateSale(id, data);
+        toast.success("Venda atualizada!", {
+          description: `Venda de ${data.aparelho} foi atualizada.`,
+        });
+      } else {
+        await sellService.createSale(data);
+        toast.success("Venda registrada!", {
+          description: `Venda de ${data.aparelho} foi registrada.`,
+        });
+      }
+      navigate("/");
+    } catch (error: unknown) {
+      const err = error as { message?: string };
+      toast.error(err?.message || "Erro ao salvar venda.");
+    } finally {
+      setSubmitting(false);
+    }
   };
+
+  if (fetching) {
+    return (
+      <div className="flex flex-col justify-center items-center py-12 space-y-4 min-h-screen">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <span className="text-muted-foreground">Carregando venda...</span>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -198,7 +251,7 @@ const AddEditSale = () => {
                     <FormItem>
                       <FormLabel>Observação</FormLabel>
                       <FormControl>
-                        <Textarea placeholder="Informações adicionais" {...field} />
+                        <Textarea placeholder="Informações adicionais" className="resize-none" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -235,7 +288,7 @@ const AddEditSale = () => {
                       <FormItem>
                         <FormLabel>Telefone</FormLabel>
                         <FormControl>
-                          <Input placeholder="+55 (11) 98765-4321" {...field} />
+                          <Input placeholder="(11) 98765-4321" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -410,10 +463,17 @@ const AddEditSale = () => {
             </Card>
 
             <div className="flex gap-4">
-              <Button type="submit" size="lg">
-                {isEditing ? "Salvar Alterações" : "Registrar Venda"}
+              <Button type="submit" size="lg" disabled={submitting}>
+                {submitting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Salvando...
+                  </>
+                ) : (
+                  isEditing ? "Salvar Alterações" : "Registrar Venda"
+                )}
               </Button>
-              <Button type="button" variant="outline" size="lg" onClick={() => navigate("/")}>
+              <Button type="button" variant="outline" size="lg" onClick={() => navigate("/")} disabled={submitting}>
                 Cancelar
               </Button>
             </div>

@@ -1,22 +1,21 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { SoldDevice } from "@/data/mockData";
-import { Search, CheckCircle2, XCircle, Eye, Edit, FileDown, Upload, FileSpreadsheet } from "lucide-react";
+import { Search, CheckCircle2, XCircle, Eye, Edit, FileDown, Upload, FileSpreadsheet, Loader2, RefreshCw } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import * as XLSX from "xlsx";
+import { sellService, SoldDevice } from "@/services/sellService";
+import { toast } from "sonner";
 
-interface SalesTableProps {
-  devices: SoldDevice[];
-}
-
-export const SalesTable = ({ devices }: SalesTableProps) => {
+export const SalesTable = () => {
+  const [devices, setDevices] = useState<SoldDevice[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [conditionFilter, setConditionFilter] = useState<string>("all");
@@ -24,12 +23,26 @@ export const SalesTable = ({ devices }: SalesTableProps) => {
   const [endDate, setEndDate] = useState("");
   const navigate = useNavigate();
 
-  const filteredDevices = devices.filter((device) => {
-    const matchesSearch =
-      device.aparelho.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      device.comprador.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      device.imei.includes(searchTerm);
+  const fetchSales = useCallback(async () => {
+    try {
+      setLoading(true);
+      const response = await sellService.getSales({
+        limit: 1000,
+        search: searchTerm || undefined,
+      });
+      setDevices(response.data);
+    } catch {
+      toast.error("Erro ao carregar vendas. Tente novamente.");
+    } finally {
+      setLoading(false);
+    }
+  }, [searchTerm]);
 
+  useEffect(() => {
+    fetchSales();
+  }, [fetchSales]);
+
+  const filteredDevices = devices.filter((device) => {
     const matchesStatus =
       statusFilter === "all" ||
       (statusFilter === "completed" && device.aparelho_recebido) ||
@@ -38,11 +51,11 @@ export const SalesTable = ({ devices }: SalesTableProps) => {
     const matchesCondition =
       conditionFilter === "all" || device.condicao === conditionFilter;
 
-    const deviceDate = new Date(device.data);
-    const matchesStartDate = !startDate || deviceDate >= new Date(startDate);
-    const matchesEndDate = !endDate || deviceDate <= new Date(endDate);
+    const deviceDate = new Date(device.data + "T00:00:00");
+    const matchesStartDate = !startDate || deviceDate >= new Date(startDate + "T00:00:00");
+    const matchesEndDate = !endDate || deviceDate <= new Date(endDate + "T00:00:00");
 
-    return matchesSearch && matchesStatus && matchesCondition && matchesStartDate && matchesEndDate;
+    return matchesStatus && matchesCondition && matchesStartDate && matchesEndDate;
   });
 
   const formatCurrency = (value: number) => {
@@ -52,6 +65,11 @@ export const SalesTable = ({ devices }: SalesTableProps) => {
     }).format(value);
   };
 
+  const formatDate = (dateString: string) => {
+    const [year, month, day] = dateString.split("T")[0].split("-");
+    return `${day}/${month}/${year}`;
+  };
+
   const getConditionBadge = (condition: string) => {
     const variants: Record<string, { variant: "default" | "secondary" | "destructive" | "outline"; className: string }> = {
       Novo: { variant: "default", className: "bg-success text-success-foreground" },
@@ -59,7 +77,6 @@ export const SalesTable = ({ devices }: SalesTableProps) => {
       Usado: { variant: "outline", className: "bg-warning/10 text-warning border-warning" },
       Recondicionado: { variant: "outline", className: "bg-accent/10 text-accent border-accent" },
     };
-
     const config = variants[condition] || variants.Usado;
     return <Badge variant={config.variant} className={config.className}>{condition}</Badge>;
   };
@@ -71,10 +88,8 @@ export const SalesTable = ({ devices }: SalesTableProps) => {
 
   const exportToPDF = () => {
     const doc = new jsPDF();
-    
     doc.setFontSize(16);
     doc.text("Relatório de Vendas", 14, 15);
-    
     const tableData = filteredDevices.map((device) => [
       device.aparelho,
       device.cor,
@@ -84,9 +99,8 @@ export const SalesTable = ({ devices }: SalesTableProps) => {
       formatCurrency(device.valor_compra),
       formatCurrency(calculateProfit(device)),
       device.aparelho_recebido ? "Concluído" : "Pendente",
-      device.data,
+      formatDate(device.data),
     ]);
-
     autoTable(doc, {
       head: [["Aparelho", "Cor", "IMEI", "Condição", "Valor Venda", "Valor Custo", "Lucro", "Status", "Data"]],
       body: tableData,
@@ -94,7 +108,6 @@ export const SalesTable = ({ devices }: SalesTableProps) => {
       styles: { fontSize: 8 },
       headStyles: { fillColor: [59, 130, 246] },
     });
-
     doc.save(`vendas-${new Date().toISOString().split("T")[0]}.pdf`);
   };
 
@@ -110,21 +123,18 @@ export const SalesTable = ({ devices }: SalesTableProps) => {
       "Valor de Compra": device.valor_compra,
       "Lucro": calculateProfit(device),
       "Status": device.aparelho_recebido ? "Concluído" : "Pendente",
-      "Data": device.data,
+      "Data": formatDate(device.data),
       "Observação": device.observacao,
     }));
-
     const worksheet = XLSX.utils.json_to_sheet(worksheetData);
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "Vendas");
-    
     XLSX.writeFile(workbook, `vendas-${new Date().toISOString().split("T")[0]}.xlsx`);
   };
 
   const handleImportExcel = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
-
     const reader = new FileReader();
     reader.onload = (e) => {
       const data = e.target?.result;
@@ -132,10 +142,7 @@ export const SalesTable = ({ devices }: SalesTableProps) => {
       const sheetName = workbook.SheetNames[0];
       const worksheet = workbook.Sheets[sheetName];
       const jsonData = XLSX.utils.sheet_to_json(worksheet);
-      
       console.log("Dados importados:", jsonData);
-      // Aqui você pode processar os dados importados
-      // Por exemplo, atualizar o estado ou enviar para o backend
     };
     reader.readAsBinaryString(file);
   };
@@ -149,6 +156,9 @@ export const SalesTable = ({ devices }: SalesTableProps) => {
             <CardDescription>Histórico de aparelhos vendidos</CardDescription>
           </div>
           <div className="flex gap-2">
+            <Button onClick={fetchSales} variant="outline" size="sm">
+              <RefreshCw className="h-4 w-4" />
+            </Button>
             <Button onClick={exportToPDF} variant="outline" size="sm">
               <FileDown className="h-4 w-4 mr-2" />
               PDF
@@ -182,22 +192,18 @@ export const SalesTable = ({ devices }: SalesTableProps) => {
             />
           </div>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-            <div>
-              <Input
-                type="date"
-                placeholder="Data inicial"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-              />
-            </div>
-            <div>
-              <Input
-                type="date"
-                placeholder="Data final"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-              />
-            </div>
+            <Input
+              type="date"
+              placeholder="Data inicial"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+            />
+            <Input
+              type="date"
+              placeholder="Data final"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+            />
             <Select value={statusFilter} onValueChange={setStatusFilter}>
               <SelectTrigger>
                 <SelectValue placeholder="Status" />
@@ -224,102 +230,109 @@ export const SalesTable = ({ devices }: SalesTableProps) => {
         </div>
       </CardHeader>
       <CardContent>
-        <div className="rounded-md border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Data</TableHead>
-                <TableHead>Aparelho</TableHead>
-                <TableHead>Condição</TableHead>
-                <TableHead>Comprador</TableHead>
-                <TableHead>Valor Compra</TableHead>
-                <TableHead>Valor Venda</TableHead>
-                <TableHead>Lucro</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Ações</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredDevices.length === 0 ? (
+        {loading ? (
+          <div className="flex flex-col justify-center items-center py-12 space-y-4">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <span className="text-muted-foreground">Carregando vendas...</span>
+          </div>
+        ) : (
+          <div className="rounded-md border overflow-x-auto">
+            <Table>
+              <TableHeader>
                 <TableRow>
-                  <TableCell colSpan={9} className="text-center text-muted-foreground">
-                    Nenhuma venda encontrada
-                  </TableCell>
+                  <TableHead>Data</TableHead>
+                  <TableHead>Aparelho</TableHead>
+                  <TableHead>Condição</TableHead>
+                  <TableHead>Comprador</TableHead>
+                  <TableHead>Valor Compra</TableHead>
+                  <TableHead>Valor Venda</TableHead>
+                  <TableHead>Lucro</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Ações</TableHead>
                 </TableRow>
-              ) : (
-                filteredDevices.map((device, index) => {
-                  const profit = calculateProfit(device);
-                  return (
-                    <TableRow key={index}>
-                      <TableCell className="font-medium">
-                        {new Date(device.data).toLocaleDateString("pt-BR")}
-                      </TableCell>
-                      <TableCell>
-                        <div>
-                          <div className="font-medium">{device.aparelho}</div>
-                          <div className="text-xs text-muted-foreground">{device.cor}</div>
-                        </div>
-                      </TableCell>
-                      <TableCell>{getConditionBadge(device.condicao)}</TableCell>
-                      <TableCell>
-                        <div>
-                          <div className="font-medium">{device.comprador}</div>
-                          <div className="text-xs text-muted-foreground">{device.numero_telefone}</div>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-destructive font-semibold">
-                        {formatCurrency(device.valor_compra)}
-                      </TableCell>
-                      <TableCell className="text-success font-semibold">
-                        {device.aparelho_recebido ? formatCurrency(device.valor_total_venda) : "-"}
-                      </TableCell>
-                      <TableCell>
-                        {device.aparelho_recebido ? (
-                          <span className={profit >= 0 ? "text-success font-semibold" : "text-destructive font-semibold"}>
-                            {formatCurrency(profit)}
-                          </span>
-                        ) : (
-                          <span className="text-muted-foreground">-</span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        {device.aparelho_recebido ? (
-                          <Badge variant="default" className="bg-success text-success-foreground">
-                            <CheckCircle2 className="w-3 h-3 mr-1" />
-                            Concluído
-                          </Badge>
-                        ) : (
-                          <Badge variant="outline" className="bg-warning/10 text-warning border-warning">
-                            <XCircle className="w-3 h-3 mr-1" />
-                            Pendente
-                          </Badge>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => navigate(`/sale/${device.imei}`)}
-                          >
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => navigate(`/sale/edit/${device.imei}`)}
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })
-              )}
-            </TableBody>
-          </Table>
-        </div>
+              </TableHeader>
+              <TableBody>
+                {filteredDevices.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={9} className="text-center text-muted-foreground py-8">
+                      Nenhuma venda encontrada
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  filteredDevices.map((device) => {
+                    const profit = calculateProfit(device);
+                    return (
+                      <TableRow key={device.id}>
+                        <TableCell className="font-medium">
+                          {formatDate(device.data)}
+                        </TableCell>
+                        <TableCell>
+                          <div>
+                            <div className="font-medium">{device.aparelho}</div>
+                            <div className="text-xs text-muted-foreground">{device.cor}</div>
+                          </div>
+                        </TableCell>
+                        <TableCell>{getConditionBadge(device.condicao)}</TableCell>
+                        <TableCell>
+                          <div>
+                            <div className="font-medium">{device.comprador}</div>
+                            <div className="text-xs text-muted-foreground">{device.numero_telefone}</div>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-destructive font-semibold">
+                          {formatCurrency(device.valor_compra)}
+                        </TableCell>
+                        <TableCell className="text-success font-semibold">
+                          {device.aparelho_recebido ? formatCurrency(device.valor_total_venda) : "-"}
+                        </TableCell>
+                        <TableCell>
+                          {device.aparelho_recebido ? (
+                            <span className={profit >= 0 ? "text-success font-semibold" : "text-destructive font-semibold"}>
+                              {formatCurrency(profit)}
+                            </span>
+                          ) : (
+                            <span className="text-muted-foreground">-</span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {device.aparelho_recebido ? (
+                            <Badge variant="default" className="bg-success text-success-foreground">
+                              <CheckCircle2 className="w-3 h-3 mr-1" />
+                              Concluído
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" className="bg-warning/10 text-warning border-warning">
+                              <XCircle className="w-3 h-3 mr-1" />
+                              Pendente
+                            </Badge>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => navigate(`/sale/${device.id}`)}
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => navigate(`/sale/edit/${device.id}`)}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        )}
       </CardContent>
     </Card>
   );

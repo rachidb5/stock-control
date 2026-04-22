@@ -29,10 +29,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ArrowLeft, Package, User, DollarSign, Loader2 } from "lucide-react";
-import { stockDevices, clients } from "@/data/mockData";
+import { clients } from "@/data/mockData";
 import { masks, validators } from "@/hooks/use-masks";
 import { useCallback, useEffect, useState } from "react";
 import stockService, { StockItem } from "@/services/stockServices";
+import sellService from "@/services/sellService";
 import { toast } from "sonner";
 
 const sellSchema = z.object({
@@ -73,6 +74,7 @@ const SellFromStock = () => {
   const navigate = useNavigate();
   const { id } = useParams();
   const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
   const [device, setDevice] = useState<StockItem>(null);
 
 // FETCH
@@ -151,12 +153,38 @@ useEffect(() => {
   const valorTotalVenda =
     watchPrecoVista + watchValorEntrega + watchValorCapaPelicula;
 
-  const onSubmit = (data: SellFormData) => {
-    console.log("Registrando venda:", data);
-    toast.success("Venda registrada!", {
-      description: `${data.aparelho} vendido para ${data.comprador} por R$ ${valorTotalVenda.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
-    });
-    navigate("/sales");
+  const onSubmit = async (data: SellFormData) => {
+    try {
+      setSubmitting(true);
+      await sellService.createSale({
+        data: new Date().toISOString().split("T")[0],
+        aparelho: data.aparelho,
+        cor: data.cor,
+        imei: data.imei,
+        fornecedor: data.fornecedor,
+        valor_compra: data.valor_compra,
+        condicao: data.condicao,
+        comprador: data.comprador,
+        numero_telefone: data.telefone_comprador,
+        preco_vista: data.preco_vista,
+        preco_cartao: data.preco_cartao,
+        valor_entrega: data.valor_entrega,
+        valor_capa_pelicula: data.valor_capa_pelicula,
+        aparelho_recebido: data.aparelho_recebido,
+        observacao: data.observacao || "",
+        valor_recebido: 0,
+        valor_total_venda: valorTotalVenda,
+      });
+      toast.success("Venda registrada!", {
+        description: `${data.aparelho} vendido para ${data.comprador} por ${new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(valorTotalVenda)}`,
+      });
+      navigate("/");
+    } catch (error: unknown) {
+      const err = error as { message?: string };
+      toast.error(err?.message || "Erro ao registrar venda.");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const handleSelectClient = (clientId: string) => {
@@ -611,14 +639,22 @@ useEffect(() => {
             </Card>
 
             <div className="flex gap-4">
-              <Button type="submit" className="w-full md:w-auto">
-                Registrar Venda
+              <Button type="submit" className="w-full md:w-auto" disabled={submitting}>
+                {submitting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Registrando...
+                  </>
+                ) : (
+                  "Registrar Venda"
+                )}
               </Button>
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => navigate("/stock")}
                 className="w-full md:w-auto"
+                disabled={submitting}
               >
                 Cancelar
               </Button>

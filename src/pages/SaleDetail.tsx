@@ -1,15 +1,55 @@
 import { useNavigate, useParams } from "react-router-dom";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Edit, ShoppingCart, User, DollarSign, CheckCircle2, XCircle } from "lucide-react";
-import { soldDevices } from "@/data/mockData";
+import { ArrowLeft, Edit, ShoppingCart, User, DollarSign, CheckCircle2, XCircle, Loader2 } from "lucide-react";
+import sellService, { SoldDevice } from "@/services/sellService";
+import { toast } from "sonner";
 
 const SaleDetail = () => {
   const navigate = useNavigate();
-  const { imei } = useParams();
+  const { id } = useParams();
+  const [device, setDevice] = useState<SoldDevice | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  const device = soldDevices.find(d => d.imei === imei);
+  useEffect(() => {
+    if (!id) return;
+    const fetchSale = async () => {
+      try {
+        setLoading(true);
+        const data = await sellService.getSaleById(id);
+        setDevice(data);
+      } catch {
+        toast.error("Erro ao carregar venda.");
+        navigate("/");
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchSale();
+  }, [id, navigate]);
+
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat("pt-BR", {
+      style: "currency",
+      currency: "BRL",
+    }).format(value);
+  };
+
+  const formatDate = (dateString: string) => {
+    const [year, month, day] = dateString.split("T")[0].split("-");
+    return `${day}/${month}/${year}`;
+  };
+
+  if (loading) {
+    return (
+      <div className="flex flex-col justify-center items-center py-12 space-y-4 min-h-screen">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <span className="text-muted-foreground">Carregando venda...</span>
+      </div>
+    );
+  }
 
   if (!device) {
     return (
@@ -30,17 +70,6 @@ const SaleDetail = () => {
     );
   }
 
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat("pt-BR", {
-      style: "currency",
-      currency: "BRL",
-    }).format(value);
-  };
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("pt-BR");
-  };
-
   const profit = device.valor_total_venda - device.valor_compra;
 
   return (
@@ -59,7 +88,7 @@ const SaleDetail = () => {
               </h1>
               <p className="text-muted-foreground mt-1">Informações completas da transação</p>
             </div>
-            <Button onClick={() => navigate(`/sale/edit/${device.imei}`)}>
+            <Button onClick={() => navigate(`/sale/edit/${device.id}`)}>
               <Edit className="mr-2 h-4 w-4" />
               Editar
             </Button>
@@ -190,9 +219,9 @@ const SaleDetail = () => {
                     <p className="text-sm font-medium text-muted-foreground">Total da Venda</p>
                     <p className="text-2xl font-bold text-primary">{formatCurrency(device.valor_total_venda)}</p>
                   </div>
-                  <div className={`p-4 rounded-lg ${profit > 0 ? 'bg-green-500/10 border border-green-500/20' : 'bg-red-500/10 border border-red-500/20'}`}>
+                  <div className={`p-4 rounded-lg ${profit > 0 ? "bg-green-500/10 border border-green-500/20" : "bg-red-500/10 border border-red-500/20"}`}>
                     <p className="text-sm font-medium text-muted-foreground">Lucro</p>
-                    <p className={`text-2xl font-bold ${profit > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    <p className={`text-2xl font-bold ${profit > 0 ? "text-green-600" : "text-red-600"}`}>
                       {formatCurrency(profit)}
                     </p>
                   </div>
@@ -215,7 +244,7 @@ const SaleDetail = () => {
         </div>
 
         <div className="mt-6 flex gap-4">
-          <Button onClick={() => navigate(`/sale/edit/${device.imei}`)} size="lg">
+          <Button onClick={() => navigate(`/sale/edit/${device.id}`)} size="lg">
             <Edit className="mr-2 h-4 w-4" />
             Editar Venda
           </Button>
