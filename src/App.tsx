@@ -32,8 +32,8 @@ const App = () => (
           <Route path="/stock/edit/:id" element={<AddEditStock />} />
           <Route path="/stock/:id" element={<StockDetail />} />
           <Route path="/sale/add" element={<AddEditSale />} />
-          <Route path="/sale/edit/:imei" element={<AddEditSale />} />
-          <Route path="/sale/:imei" element={<SaleDetail />} />
+          <Route path="/sale/edit/:id" element={<AddEditSale />} />
+          <Route path="/sale/:id" element={<SaleDetail />} />
           <Route path="/sell/:id" element={<SellFromStock />} />
           <Route path="/clients" element={<Clients />} />
           <Route path="/conta" element={<Account />} />
