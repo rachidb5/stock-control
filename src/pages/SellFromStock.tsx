@@ -30,42 +30,33 @@ import {
 } from "@/components/ui/select";
 import { ArrowLeft, Package, User, DollarSign, Loader2 } from "lucide-react";
 import { clients } from "@/data/mockData";
-import { masks, validators } from "@/hooks/use-masks";
-import { useCallback, useEffect, useState } from "react";
+import { masks } from "@/hooks/use-masks";
+import { useEffect, useState } from "react";
 import stockService, { StockItem } from "@/services/stockServices";
 import sellService from "@/services/sellService";
 import { toast } from "sonner";
 
+const toNum = (v: unknown): number => parseFloat(String(v ?? 0)) || 0;
+
 const sellSchema = z.object({
-  // Device info (from stock)
   aparelho: z.string().min(1, "Aparelho é obrigatório"),
-  cor: z.string().min(1, "Cor é obrigatória"),
+  cor: z.string().optional().default(""),
   imei: z.string().min(1, "IMEI é obrigatório"),
-  fornecedor: z.string().min(1, "Fornecedor é obrigatório"),
-  valor_compra: z.number().min(0, "Valor de compra deve ser positivo"),
+  fornecedor: z.string().optional().default(""),
+  valor_compra: z.number().min(0),
   condicao: z.string().min(1, "Condição é obrigatória"),
 
-  // Buyer info
   comprador: z.string().min(1, "Nome do comprador é obrigatório"),
-  cpf_comprador: z
-    .string()
-    .refine((val) => validators.cpf(val), "CPF inválido"),
-  telefone_comprador: z
-    .string()
-    .refine((val) => validators.phone(val), "Telefone inválido"),
-  email_comprador: z
-    .string()
-    .email("Email inválido")
-    .optional()
-    .or(z.literal("")),
+  cpf_comprador: z.string().optional().default(""),
+  telefone_comprador: z.string().min(1, "Telefone é obrigatório"),
+  email_comprador: z.string().optional().default(""),
 
-  // Sale values
-  preco_vista: z.number().min(0, "Valor deve ser positivo"),
-  preco_cartao: z.number().min(0, "Valor deve ser positivo"),
-  valor_entrega: z.number().min(0, "Valor deve ser positivo"),
-  valor_capa_pelicula: z.number().min(0, "Valor deve ser positivo"),
+  preco_vista: z.number().min(0, "Informe o preço à vista"),
+  preco_cartao: z.number().min(0),
+  valor_entrega: z.number().min(0),
+  valor_capa_pelicula: z.number().min(0),
   aparelho_recebido: z.boolean(),
-  observacao: z.string().max(500).optional(),
+  observacao: z.string().max(500).optional().default(""),
 });
 
 type SellFormData = z.infer<typeof sellSchema>;
@@ -75,83 +66,77 @@ const SellFromStock = () => {
   const { id } = useParams();
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [device, setDevice] = useState<StockItem>(null);
+  const [device, setDevice] = useState<StockItem | null>(null);
 
-// FETCH
-useEffect(() => {
-  if (!id) return;
+  useEffect(() => {
+    if (!id) return;
+    const fetchItem = async () => {
+      try {
+        setLoading(true);
+        const response = await stockService.getStockById(id);
+        setDevice(response);
+      } catch {
+        toast.error("Erro ao carregar estoque. Tente novamente.");
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchItem();
+  }, [id]);
 
-  const fetchItem = async () => {
-    try {
-      setLoading(true);
-
-      const response = await stockService.getStockById(id);
-      setDevice(response);
-    } catch (error) {
-      console.error("Erro ao buscar estoque:", error);
-      toast.error("Erro ao carregar estoque. Tente novamente.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  fetchItem();
-}, [id]);
-
-// FORM (SEM device aqui)
-const form = useForm<SellFormData>({
-  resolver: zodResolver(sellSchema),
-  defaultValues: {
-    aparelho: "",
-    cor: "",
-    imei: "",
-    fornecedor: "",
-    valor_compra: 0,
-    condicao: "",
-    comprador: "",
-    cpf_comprador: "",
-    telefone_comprador: "",
-    email_comprador: "",
-    preco_vista: 0,
-    preco_cartao: 0,
-    valor_entrega: 0,
-    valor_capa_pelicula: 0,
-    aparelho_recebido: true,
-    observacao: "",
-  },
-});
-
-// POPULAR FORM QUANDO device CHEGAR
-useEffect(() => {
-  if (!device) return;
-
-  form.reset({
-    aparelho: device.modelo,
-    cor: device.cor,
-    imei: device.imei,
-    fornecedor: device.fornecedor,
-    valor_compra: device.valor_unitario,
-    condicao: device.observacao?.toLowerCase().includes("quebrada")
-      ? "Tela quebrada"
-      : "Seminovo",
-    comprador: "",
-    cpf_comprador: "",
-    telefone_comprador: "",
-    email_comprador: "",
-    preco_vista: 0,
-    preco_cartao: 0,
-    valor_entrega: 0,
-    valor_capa_pelicula: 0,
-    aparelho_recebido: true,
-    observacao: device.observacao ?? "",
+  const form = useForm<SellFormData>({
+    resolver: zodResolver(sellSchema),
+    defaultValues: {
+      aparelho: "",
+      cor: "",
+      imei: "",
+      fornecedor: "",
+      valor_compra: 0,
+      condicao: "",
+      comprador: "",
+      cpf_comprador: "",
+      telefone_comprador: "",
+      email_comprador: "",
+      preco_vista: 0,
+      preco_cartao: 0,
+      valor_entrega: 0,
+      valor_capa_pelicula: 0,
+      aparelho_recebido: true,
+      observacao: "",
+    },
   });
-}, [device, form]);
+
+  useEffect(() => {
+    if (!device) return;
+    form.reset({
+      aparelho: device.modelo ?? "",
+      cor: device.cor ?? "",
+      imei: device.imei ?? "",
+      fornecedor: device.fornecedor ?? "",
+      valor_compra: toNum(device.valor_unitario),
+      condicao: device.observacao?.toLowerCase().includes("quebrada")
+        ? "Tela quebrada"
+        : "Seminovo",
+      comprador: "",
+      cpf_comprador: "",
+      telefone_comprador: "",
+      email_comprador: "",
+      preco_vista: 0,
+      preco_cartao: 0,
+      valor_entrega: 0,
+      valor_capa_pelicula: 0,
+      aparelho_recebido: true,
+      observacao: device.observacao ?? "",
+    });
+  }, [device, form]);
 
   const watchPrecoVista = form.watch("preco_vista");
   const watchValorEntrega = form.watch("valor_entrega");
   const watchValorCapaPelicula = form.watch("valor_capa_pelicula");
   const valorTotalVenda =
-    watchPrecoVista + watchValorEntrega + watchValorCapaPelicula;
+    toNum(watchPrecoVista) +
+    toNum(watchValorEntrega) +
+    toNum(watchValorCapaPelicula);
 
   const onSubmit = async (data: SellFormData) => {
     try {
@@ -159,9 +144,9 @@ useEffect(() => {
       await sellService.createSale({
         data: new Date().toISOString().split("T")[0],
         aparelho: data.aparelho,
-        cor: data.cor,
+        cor: data.cor ?? "",
         imei: data.imei,
-        fornecedor: data.fornecedor,
+        fornecedor: data.fornecedor ?? "",
         valor_compra: data.valor_compra,
         condicao: data.condicao,
         comprador: data.comprador,
@@ -171,10 +156,14 @@ useEffect(() => {
         valor_entrega: data.valor_entrega,
         valor_capa_pelicula: data.valor_capa_pelicula,
         aparelho_recebido: data.aparelho_recebido,
-        observacao: data.observacao || "",
+        observacao: data.observacao ?? "",
         valor_recebido: 0,
         valor_total_venda: valorTotalVenda,
       });
+
+      // Debita o item do estoque após venda confirmada
+      await stockService.deleteStock(device.id);
+
       toast.success("Venda registrada!", {
         description: `${data.aparelho} vendido para ${data.comprador} por ${new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(valorTotalVenda)}`,
       });
@@ -197,9 +186,12 @@ useEffect(() => {
     }
   };
 
+  const currencyDisplay = (v: number | string | undefined) =>
+    masks.numberToCurrency(toNum(v));
+
   if (loading) {
     return (
-      <div className="flex flex-col justify-center items-center py-12 space-y-4">
+      <div className="flex flex-col justify-center items-center min-h-screen space-y-4">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
         <span className="text-muted-foreground">Carregando item...</span>
       </div>
@@ -210,10 +202,8 @@ useEffect(() => {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <Card className="p-6">
-          <p className="text-muted-foreground">
-            Dispositivo não encontrado no estoque.
-          </p>
-          <Button onClick={() => navigate("/stock")} className="mt-4">
+          <p className="text-muted-foreground">Dispositivo não encontrado no estoque.</p>
+          <Button onClick={() => navigate("/")} className="mt-4">
             Voltar ao Estoque
           </Button>
         </Card>
@@ -225,27 +215,20 @@ useEffect(() => {
     <div className="min-h-screen bg-background">
       <header className="border-b bg-card shadow-sm">
         <div className="container mx-auto px-4 py-6">
-          <Button
-            variant="ghost"
-            onClick={() => navigate("/stock")}
-            className="mb-4"
-          >
+          <Button variant="ghost" onClick={() => navigate("/")} className="mb-4">
             <ArrowLeft className="mr-2 h-4 w-4" />
             Voltar ao Estoque
           </Button>
-          <h1 className="text-3xl font-bold text-foreground">
-            Registrar Venda
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            Venda do produto em estoque
-          </p>
+          <h1 className="text-3xl font-bold text-foreground">Registrar Venda</h1>
+          <p className="text-muted-foreground mt-1">Venda do produto em estoque</p>
         </div>
       </header>
 
       <main className="container mx-auto px-4 py-8">
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            {/* Device Info */}
+
+            {/* Informações do Aparelho */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -319,7 +302,7 @@ useEffect(() => {
                       <FormLabel>Valor de Compra (R$)</FormLabel>
                       <FormControl>
                         <Input
-                          value={masks.numberToCurrency(field.value)}
+                          value={currencyDisplay(field.value)}
                           disabled
                           className="bg-muted"
                         />
@@ -329,16 +312,14 @@ useEffect(() => {
                   )}
                 />
 
+                {/* Condição — usa value (não defaultValue) para responder ao form.reset */}
                 <FormField
                   control={form.control}
                   name="condicao"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Condição</FormLabel>
-                      <Select
-                        onValueChange={field.onChange}
-                        defaultValue={field.value}
-                      >
+                      <Select value={field.value} onValueChange={field.onChange}>
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Selecione a condição" />
@@ -348,12 +329,8 @@ useEffect(() => {
                           <SelectItem value="Novo">Novo</SelectItem>
                           <SelectItem value="Seminovo">Seminovo</SelectItem>
                           <SelectItem value="Usado">Usado</SelectItem>
-                          <SelectItem value="Recondicionado">
-                            Recondicionado
-                          </SelectItem>
-                          <SelectItem value="Tela quebrada">
-                            Tela quebrada
-                          </SelectItem>
+                          <SelectItem value="Recondicionado">Recondicionado</SelectItem>
+                          <SelectItem value="Tela quebrada">Tela quebrada</SelectItem>
                         </SelectContent>
                       </Select>
                       <FormMessage />
@@ -363,7 +340,7 @@ useEffect(() => {
               </CardContent>
             </Card>
 
-            {/* Buyer Info */}
+            {/* Dados do Comprador */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -373,7 +350,7 @@ useEffect(() => {
                 <CardDescription>Informações do cliente</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="mb-4">
+                {/* <div className="mb-4">
                   <FormLabel>Selecionar Cliente Existente</FormLabel>
                   <Select onValueChange={handleSelectClient}>
                     <SelectTrigger>
@@ -387,7 +364,7 @@ useEffect(() => {
                       ))}
                     </SelectContent>
                   </Select>
-                </div>
+                </div> */}
 
                 <div className="grid gap-4 md:grid-cols-2">
                   <FormField
@@ -409,7 +386,7 @@ useEffect(() => {
                     name="cpf_comprador"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>CPF *</FormLabel>
+                        <FormLabel>CPF</FormLabel>
                         <FormControl>
                           <Input
                             placeholder="000.000.000-00"
@@ -467,16 +444,14 @@ useEffect(() => {
               </CardContent>
             </Card>
 
-            {/* Sale Values */}
+            {/* Valores da Venda */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <DollarSign className="h-5 w-5" />
                   Valores da Venda
                 </CardTitle>
-                <CardDescription>
-                  Defina os valores da transação
-                </CardDescription>
+                <CardDescription>Defina os valores da transação</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -489,15 +464,9 @@ useEffect(() => {
                         <FormControl>
                           <Input
                             placeholder="0,00"
-                            value={
-                              field.value
-                                ? masks.numberToCurrency(field.value)
-                                : ""
-                            }
+                            value={currencyDisplay(field.value)}
                             onChange={(e) =>
-                              field.onChange(
-                                masks.currencyToNumber(e.target.value),
-                              )
+                              field.onChange(masks.currencyToNumber(e.target.value))
                             }
                           />
                         </FormControl>
@@ -515,15 +484,9 @@ useEffect(() => {
                         <FormControl>
                           <Input
                             placeholder="0,00"
-                            value={
-                              field.value
-                                ? masks.numberToCurrency(field.value)
-                                : ""
-                            }
+                            value={currencyDisplay(field.value)}
                             onChange={(e) =>
-                              field.onChange(
-                                masks.currencyToNumber(e.target.value),
-                              )
+                              field.onChange(masks.currencyToNumber(e.target.value))
                             }
                           />
                         </FormControl>
@@ -541,15 +504,9 @@ useEffect(() => {
                         <FormControl>
                           <Input
                             placeholder="0,00"
-                            value={
-                              field.value
-                                ? masks.numberToCurrency(field.value)
-                                : ""
-                            }
+                            value={currencyDisplay(field.value)}
                             onChange={(e) =>
-                              field.onChange(
-                                masks.currencyToNumber(e.target.value),
-                              )
+                              field.onChange(masks.currencyToNumber(e.target.value))
                             }
                           />
                         </FormControl>
@@ -567,15 +524,9 @@ useEffect(() => {
                         <FormControl>
                           <Input
                             placeholder="0,00"
-                            value={
-                              field.value
-                                ? masks.numberToCurrency(field.value)
-                                : ""
-                            }
+                            value={currencyDisplay(field.value)}
                             onChange={(e) =>
-                              field.onChange(
-                                masks.currencyToNumber(e.target.value),
-                              )
+                              field.onChange(masks.currencyToNumber(e.target.value))
                             }
                           />
                         </FormControl>
@@ -588,10 +539,10 @@ useEffect(() => {
                 <div className="flex items-center justify-between p-4 bg-primary/10 rounded-lg">
                   <span className="font-medium">Valor Total da Venda:</span>
                   <span className="text-2xl font-bold text-primary">
-                    R${" "}
-                    {valorTotalVenda.toLocaleString("pt-BR", {
-                      minimumFractionDigits: 2,
-                    })}
+                    {new Intl.NumberFormat("pt-BR", {
+                      style: "currency",
+                      currency: "BRL",
+                    }).format(valorTotalVenda)}
                   </span>
                 </div>
 
@@ -652,7 +603,7 @@ useEffect(() => {
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => navigate("/stock")}
+                onClick={() => navigate("/")}
                 className="w-full md:w-auto"
                 disabled={submitting}
               >

@@ -78,8 +78,8 @@ export const stockService = {
   },
 
   // Remover item do estoque
-  deleteStock: async (imei: string): Promise<void> => {
-    await api.delete(`/stock/${imei}`);
+  deleteStock: async (id: string | number): Promise<void> => {
+    await api.delete(`/stock/${id}`);
   },
 };
 
