@@ -36,7 +36,8 @@ import {
 import { useNavigate } from "react-router-dom";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
-import * as XLSX from "xlsx";
+import { toast } from "sonner";
+import { exportRowsToWorkbook, importRowsFromWorkbook } from "@/lib/excel";
 
 interface SalesTableDevice {
   id: string | number;
@@ -216,32 +217,36 @@ export function SalesTable({ devices, showSeller = false }: SalesTableProps) {
       Status: device.aparelho_recebido ? "Concluído" : "Pendente",
       Observação: device.observacao,
     }));
-
-    const worksheet = XLSX.utils.json_to_sheet(worksheetData);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Vendas");
-
-    XLSX.writeFile(workbook, `vendas-${new Date().toISOString().split("T")[0]}.xlsx`);
+    void exportRowsToWorkbook(
+      worksheetData,
+      `vendas-${new Date().toISOString().split("T")[0]}.xlsx`,
+      "Vendas",
+    );
   };
 
-  const handleImportExcel = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImportExcel = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
 
     if (!file) {
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = (currentEvent) => {
-      const data = currentEvent.target?.result;
-      const workbook = XLSX.read(data, { type: "binary" });
-      const sheetName = workbook.SheetNames[0];
-      const worksheet = workbook.Sheets[sheetName];
-      const jsonData = XLSX.utils.sheet_to_json(worksheet);
+    if (!file.name.toLowerCase().endsWith(".xlsx")) {
+      toast.error("Use um arquivo .xlsx para importar vendas.");
+      event.target.value = "";
+      return;
+    }
 
-      console.log("Dados importados:", jsonData);
-    };
-    reader.readAsBinaryString(file);
+    try {
+      const rows = await importRowsFromWorkbook(file);
+      console.log("Dados importados:", rows);
+      toast.success(`${rows.length} linha(s) lidas da planilha de vendas.`);
+    } catch (error) {
+      console.error("Erro ao importar planilha de vendas:", error);
+      toast.error("Erro ao importar arquivo de vendas.");
+    } finally {
+      event.target.value = "";
+    }
   };
 
   return (
@@ -273,7 +278,7 @@ export function SalesTable({ devices, showSeller = false }: SalesTableProps) {
                 Importar
                 <input
                   type="file"
-                  accept=".xlsx,.xls"
+                  accept=".xlsx"
                   onChange={handleImportExcel}
                   className="hidden"
                 />
