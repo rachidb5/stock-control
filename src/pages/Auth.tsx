@@ -18,6 +18,7 @@ import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { LogIn, UserPlus } from "lucide-react";
 import authService from "@/services/authService";
+import { useSessionStore } from "@/stores/useSessionStore";
 
 const loginSchema = z.object({
   email: z.string().email("Email inválido"),
@@ -43,6 +44,8 @@ const Auth = () => {
   const [activeTab, setActiveTab] = useState("login");
   const navigate = useNavigate();
   const { toast } = useToast();
+  const users = useSessionStore((state) => state.users);
+  const setCurrentUser = useSessionStore((state) => state.setCurrentUser);
 
   const loginForm = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
@@ -55,13 +58,22 @@ const Auth = () => {
   const onLogin = async (data: LoginFormData) => {
     try {
       const response: any = await authService.login(data);
+      const matchingUser = users.find(
+        (user) => user.email.toLowerCase() === data.email.toLowerCase(),
+      );
+      const token = response?.access_token ?? response?.accessToken ?? "local-demo-token";
 
-      // Exemplo: salvar token (ajuste conforme sua arquitetura)
-      localStorage.setItem("accessToken", response.access_token);
+      localStorage.setItem("accessToken", token);
+
+      if (matchingUser) {
+        setCurrentUser(matchingUser.id);
+      }
 
       toast({
         title: "Login realizado com sucesso",
-        description: `Bem-vindo!`,
+        description: matchingUser
+          ? `Bem-vindo de volta, ${matchingUser.name.split(" ")[0]}!`
+          : "Bem-vindo!",
       });
 
       navigate("/");
@@ -144,6 +156,9 @@ const Auth = () => {
                   <LogIn className="mr-2 h-4 w-4" />
                   Entrar
                 </Button>
+                <p className="text-center text-xs text-muted-foreground">
+                  Use um email da equipe local para carregar o perfil salvo.
+                </p>
               </form>
             </TabsContent>
 

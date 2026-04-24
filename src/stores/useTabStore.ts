@@ -6,6 +6,6 @@ interface TabState {
 }
 
 export const useTabStore = create<TabState>((set) => ({
-  tab: "overview", // valor inicial
+  tab: "sales",
   setTab: (value) => set({ tab: value }),
 }));

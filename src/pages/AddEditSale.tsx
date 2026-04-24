@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { ArrowLeft, Loader2 } from "lucide-react";
+import { soldDevices } from "@/data/mockData";
 import sellService from "@/services/sellService";
 import { toast } from "sonner";
 
@@ -39,6 +40,7 @@ const AddEditSale = () => {
   const navigate = useNavigate();
   const { id } = useParams();
   const isEditing = !!id;
+  const localSale = id ? soldDevices.find((sale) => sale.id === id) : null;
   const [fetching, setFetching] = useState(isEditing);
   const [submitting, setSubmitting] = useState(false);
 
@@ -68,6 +70,30 @@ const AddEditSale = () => {
   useEffect(() => {
     if (!isEditing || !id) return;
     const fetchSale = async () => {
+      if (localSale) {
+        form.reset({
+          data: localSale.data.split("T")[0],
+          aparelho: localSale.aparelho,
+          cor: localSale.cor,
+          condicao: localSale.condicao,
+          imei: localSale.imei,
+          fornecedor: localSale.fornecedor,
+          valor_compra: localSale.valor_compra,
+          comprador: localSale.comprador,
+          numero_telefone: localSale.numero_telefone,
+          aparelho_recebido: localSale.aparelho_recebido,
+          observacao: localSale.observacao || "",
+          valor_recebido: localSale.valor_recebido,
+          preco_vista: localSale.preco_vista,
+          preco_cartao: localSale.preco_cartao,
+          valor_entrega: localSale.valor_entrega,
+          valor_capa_pelicula: localSale.valor_capa_pelicula,
+          valor_total_venda: localSale.valor_total_venda,
+        });
+        setFetching(false);
+        return;
+      }
+
       try {
         setFetching(true);
         const sale = await sellService.getSaleById(id);
@@ -98,13 +124,17 @@ const AddEditSale = () => {
       }
     };
     fetchSale();
-  }, [id, isEditing, form, navigate]);
+  }, [id, isEditing, form, localSale, navigate]);
 
   const onSubmit = async (data: SaleFormData) => {
     try {
       setSubmitting(true);
       if (isEditing && id) {
-        await sellService.updateSale(id, data);
+        if (localSale) {
+          Object.assign(localSale, data);
+        } else {
+          await sellService.updateSale(id, data);
+        }
         toast.success("Venda atualizada!", {
           description: `Venda de ${data.aparelho} foi atualizada.`,
         });
@@ -114,7 +144,7 @@ const AddEditSale = () => {
           description: `Venda de ${data.aparelho} foi registrada.`,
         });
       }
-      navigate("/");
+      navigate(localSale ? "/painel-comercial" : "/");
     } catch (error: unknown) {
       const err = error as { message?: string };
       toast.error(err?.message || "Erro ao salvar venda.");

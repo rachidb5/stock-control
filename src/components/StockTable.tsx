@@ -10,7 +10,7 @@ import { Search, Eye, Edit, FileDown, Upload, FileSpreadsheet, ShoppingCart, Loa
 import { useNavigate } from "react-router-dom";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
-import * as XLSX from "xlsx";
+import { exportRowsToWorkbook, importRowsFromWorkbook, type ExcelRow } from "@/lib/excel";
 import { stockService, StockItem, StockResponse } from "@/services/stockServices";
 import { toast } from "sonner";
 
@@ -18,6 +18,45 @@ interface StockTableProps {
   refreshTrigger?: boolean;
   initialSearch?: string;
   onStatsUpdate?: (stats: { total: number; totalValue: number }) => void;
+}
+
+function getRowText(row: ExcelRow, keys: string[]) {
+  for (const key of keys) {
+    const value = row[key];
+    if (value == null) {
+      continue;
+    }
+
+    const text = String(value).trim();
+    if (text) {
+      return text;
+    }
+  }
+
+  return "";
+}
+
+function getRowNumber(row: ExcelRow, keys: string[]) {
+  for (const key of keys) {
+    const value = row[key];
+    if (typeof value === "number" && Number.isFinite(value)) {
+      return value;
+    }
+
+    if (typeof value === "string") {
+      const normalized = value
+        .replace(/\./g, "")
+        .replace(",", ".")
+        .replace(/[^\d.-]/g, "");
+      const parsed = Number(normalized);
+
+      if (Number.isFinite(parsed)) {
+        return parsed;
+      }
+    }
+  }
+
+  return 0;
 }
 
 export const StockTable = ({ refreshTrigger, initialSearch = "", onStatsUpdate }: StockTableProps) => {
@@ -45,7 +84,6 @@ export const StockTable = ({ refreshTrigger, initialSearch = "", onStatsUpdate }
 
       const response: StockResponse = await stockService.getStock(params);
       setDevices(response.data);
-      console.log(response)
       // Calcular valor total do estoque
       const totalValue = response.data.reduce((sum, device) => sum + (device.preco || 0), 0);
       
@@ -134,53 +172,60 @@ export const StockTable = ({ refreshTrigger, initialSearch = "", onStatsUpdate }
       "Data Entrada": device.dataEntrada,
       "Observação": device.observacao || "-",
     }));
-
-    const worksheet = XLSX.utils.json_to_sheet(worksheetData);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Estoque");
-    
-    XLSX.writeFile(workbook, `estoque-${new Date().toISOString().split("T")[0]}.xlsx`);
+    void exportRowsToWorkbook(
+      worksheetData,
+      `estoque-${new Date().toISOString().split("T")[0]}.xlsx`,
+      "Estoque",
+    );
   };
 
-  const handleImportExcel = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImportExcel = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = async (e) => {
-      try {
-        const data = e.target?.result;
-        const workbook = XLSX.read(data, { type: "binary" });
-        const sheetName = workbook.SheetNames[0];
-        const worksheet = workbook.Sheets[sheetName];
-        const jsonData = XLSX.utils.sheet_to_json(worksheet);
-        
-        // Processar dados importados
-        for (const item of jsonData) {
-          const stockItem: StockItem = {
-            id: item.id,
-            imei: item.imei || "",
-            modelo: item.modelo || "",
-            cor: item.cor || "",
-            capacidade: item.capacidade || "",
-            preco: item.preco || item.valor_unitario || 0,
-            condicao: item.condicao || "Novo",
-            dataEntrada: item.dataEntrada || new Date().toISOString().split('T')[0],
-            fornecedor: item.fornecedor || "",
-            observacao: item.observacao || item.observacao || "",
-          };
-          
-          await stockService.createStock(stockItem);
+    if (!file.name.toLowerCase().endsWith(".xlsx")) {
+      toast.error("Use um arquivo .xlsx para importar o estoque.");
+      event.target.value = "";
+      return;
+    }
+
+    try {
+      const rows = await importRowsFromWorkbook(file);
+
+      for (const row of rows) {
+        const modelo = getRowText(row, ["modelo", "aparelho"]);
+        const imei = getRowText(row, ["imei"]);
+        const valorUnitario = getRowNumber(row, ["valor_unitario", "preco"]);
+
+        if (!modelo || !imei) {
+          continue;
         }
-        
-        toast.success("Estoque importado com sucesso!");
-        fetchStock();
-      } catch (error) {
-        console.error("Erro ao importar Excel:", error);
-        toast.error("Erro ao importar arquivo. Verifique o formato.");
+
+        await stockService.createStock({
+          imei,
+          modelo,
+          marca: getRowText(row, ["marca"]) || modelo.split(" ")[0] || "Sem marca",
+          cor: getRowText(row, ["cor"]),
+          capacidade: getRowText(row, ["capacidade"]),
+          preco: valorUnitario,
+          valor_unitario: valorUnitario,
+          condicao: getRowText(row, ["condicao"]) || "Novo",
+          dataEntrada:
+            getRowText(row, ["data_entrada", "dataentrada"]) ||
+            new Date().toISOString().split("T")[0],
+          fornecedor: getRowText(row, ["fornecedor"]),
+          observacao: getRowText(row, ["observacao"]),
+        });
       }
-    };
-    reader.readAsBinaryString(file);
+
+      toast.success("Estoque importado com sucesso!");
+      fetchStock();
+    } catch (error) {
+      console.error("Erro ao importar Excel:", error);
+      toast.error("Erro ao importar arquivo. Verifique o formato.");
+    } finally {
+      event.target.value = "";
+    }
   };
 
   const handlePageChange = (newPage: number) => {
@@ -246,7 +291,7 @@ export const StockTable = ({ refreshTrigger, initialSearch = "", onStatsUpdate }
                 Importar
                 <input
                   type="file"
-                  accept=".xlsx,.xls"
+                  accept=".xlsx"
                   onChange={handleImportExcel}
                   className="hidden"
                 />
