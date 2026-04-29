@@ -17,6 +17,7 @@ import Account from "./pages/Account";
 import SellFromStock from "./pages/SellFromStock";
 import CreateUser from "./pages/CreateUser";
 import StockPage from "./pages/StockPage";
+import Products from "./pages/Products";
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -29,6 +30,7 @@ const App = () => (
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/painel-comercial" element={<CommercialDashboard />} />
+          <Route path="/produtos" element={<Products />} />
           <Route path="/stock" element={<StockPage />} />
           <Route path="/auth" element={<Auth />} />
           <Route path="/stock/add" element={<AddEditStock />} />

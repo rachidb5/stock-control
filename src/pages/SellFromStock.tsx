@@ -69,7 +69,7 @@ const sellSchema = z.object({
 });
 
 type SellFormData = z.infer<typeof sellSchema>;
-
+const toNum = (v: unknown): number => parseFloat(String(v ?? 0)) || 0;
 const SellFromStock = () => {
   const navigate = useNavigate();
   const { id } = useParams();
@@ -127,7 +127,7 @@ const SellFromStock = () => {
       cor: device.cor ?? "",
       imei: device.imei ?? "",
       fornecedor: device.fornecedor ?? "",
-      valor_compra: device.valor_unitario ?? 0,
+      valor_compra: toNum(device.valor_unitario),
       condicao: device.observacao?.toLowerCase().includes("quebrada")
         ? "Tela quebrada"
         : "Seminovo",
@@ -210,6 +210,9 @@ const SellFromStock = () => {
       form.setValue("email_comprador", client.email);
     }
   };
+
+  const currencyDisplay = (v: number | string | undefined) =>
+    masks.numberToCurrency(toNum(v));
 
   if (loading) {
     return (
@@ -333,7 +336,7 @@ const SellFromStock = () => {
                       <FormLabel>Valor de Compra (R$)</FormLabel>
                       <FormControl>
                         <Input
-                          value={masks.numberToCurrency(field.value)}
+                          value={currencyDisplay(field.value)}
                           disabled
                           className="bg-muted"
                         />

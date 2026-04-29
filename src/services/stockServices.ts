@@ -1,4 +1,5 @@
 import api from "./api";
+import { requestData } from "./serviceUtils";
 
 export interface StockItem {
   valor_unitario: number;
@@ -23,63 +24,49 @@ export interface StockResponse {
 }
 
 export const stockService = {
-  // Listar todo o estoque
   getStock: async (params?: {
     page?: number;
     limit?: number;
     search?: string;
   }): Promise<StockResponse> => {
-    const response = await api.get<StockResponse>("/stock", { params });
-    return response.data;
+    return requestData(
+      api.get<StockResponse>("/stock", { params }),
+      "Não foi possível carregar o estoque.",
+    );
   },
 
-  // Buscar item por Id
   getStockById: async (id: string): Promise<StockItem> => {
-    const response = await api.get<StockItem>(`/stock/${id}`);
-    return response.data;
+    return requestData(
+      api.get<StockItem>(`/stock/${id}`),
+      "Não foi possível carregar o item do estoque.",
+    );
   },
 
-  // Criar novo item no estoque
   createStock: async (data: Omit<StockItem, "id">): Promise<StockItem> => {
-    try {
-      const response = await api.post<StockItem>("/stock", data);
-      return response.data;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (error: any) {
-      console.error("Erro na API /estoque:", error);
-
-      throw {
-        message:
-          error?.response?.data?.message || "Erro ao criar item no estoque",
-        status: error?.response?.status,
-      };
-    }
+    return requestData(
+      api.post<StockItem>("/stock", data),
+      "Não foi possível criar o item no estoque.",
+    );
   },
 
-  // Atualizar item do estoque
   updateStock: async (
     id: string,
     data: Partial<StockItem>
   ): Promise<StockItem> => {
-    try {
-      delete data.imei;
-      const response = await api.put<StockItem>(`/stock/${id}`, data);
-      return response.data;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (error: any) {
-      console.error("Erro na API /estoque:", error);
+    const payload = { ...data };
+    delete payload.imei;
 
-      throw {
-        message:
-          error?.response?.data?.message || "Erro ao atualizar item no estoque",
-        status: error?.response?.status,
-      };
-    }
+    return requestData(
+      api.put<StockItem>(`/stock/${id}`, payload),
+      "Não foi possível atualizar o item do estoque.",
+    );
   },
 
-  // Remover item do estoque
   deleteStock: async (id: string | number): Promise<void> => {
-    await api.delete(`/stock/${id}`);
+    await requestData(
+      api.delete<void>(`/stock/${id}`),
+      "Não foi possível remover o item do estoque.",
+    );
   },
 };
 

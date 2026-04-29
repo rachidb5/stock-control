@@ -35,6 +35,10 @@ const saleSchema = z.object({
 });
 
 type SaleFormData = z.infer<typeof saleSchema>;
+const toNumber = (value: unknown) => {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : 0;
+};
 
 const AddEditSale = () => {
   const navigate = useNavigate();
@@ -78,17 +82,17 @@ const AddEditSale = () => {
           condicao: localSale.condicao,
           imei: localSale.imei,
           fornecedor: localSale.fornecedor,
-          valor_compra: localSale.valor_compra,
+          valor_compra: toNumber(localSale.valor_compra),
           comprador: localSale.comprador,
           numero_telefone: localSale.numero_telefone,
           aparelho_recebido: localSale.aparelho_recebido,
           observacao: localSale.observacao || "",
-          valor_recebido: localSale.valor_recebido,
-          preco_vista: localSale.preco_vista,
-          preco_cartao: localSale.preco_cartao,
-          valor_entrega: localSale.valor_entrega,
-          valor_capa_pelicula: localSale.valor_capa_pelicula,
-          valor_total_venda: localSale.valor_total_venda,
+          valor_recebido: toNumber(localSale.valor_recebido),
+          preco_vista: toNumber(localSale.preco_vista),
+          preco_cartao: toNumber(localSale.preco_cartao),
+          valor_entrega: toNumber(localSale.valor_entrega),
+          valor_capa_pelicula: toNumber(localSale.valor_capa_pelicula),
+          valor_total_venda: toNumber(localSale.valor_total_venda),
         });
         setFetching(false);
         return;
@@ -104,17 +108,17 @@ const AddEditSale = () => {
           condicao: sale.condicao,
           imei: sale.imei,
           fornecedor: sale.fornecedor,
-          valor_compra: sale.valor_compra,
+          valor_compra: toNumber(sale.valor_compra),
           comprador: sale.comprador,
           numero_telefone: sale.numero_telefone,
           aparelho_recebido: sale.aparelho_recebido,
           observacao: sale.observacao || "",
-          valor_recebido: sale.valor_recebido,
-          preco_vista: sale.preco_vista,
-          preco_cartao: sale.preco_cartao,
-          valor_entrega: sale.valor_entrega,
-          valor_capa_pelicula: sale.valor_capa_pelicula,
-          valor_total_venda: sale.valor_total_venda,
+          valor_recebido: toNumber(sale.valor_recebido),
+          preco_vista: toNumber(sale.preco_vista),
+          preco_cartao: toNumber(sale.preco_cartao),
+          valor_entrega: toNumber(sale.valor_entrega),
+          valor_capa_pelicula: toNumber(sale.valor_capa_pelicula),
+          valor_total_venda: toNumber(sale.valor_total_venda),
         });
       } catch {
         toast.error("Erro ao carregar venda.");
@@ -144,7 +148,7 @@ const AddEditSale = () => {
           description: `Venda de ${data.aparelho} foi registrada.`,
         });
       }
-      navigate(localSale ? "/painel-comercial" : "/");
+      navigate("/produtos?tab=vendas");
     } catch (error: unknown) {
       const err = error as { message?: string };
       toast.error(err?.message || "Erro ao salvar venda.");
@@ -166,7 +170,11 @@ const AddEditSale = () => {
     <div className="min-h-screen bg-background">
       <header className="border-b bg-card shadow-sm">
         <div className="container mx-auto px-4 py-6">
-          <Button variant="ghost" onClick={() => navigate("/")} className="mb-4">
+          <Button
+            variant="ghost"
+            onClick={() => navigate("/produtos?tab=vendas")}
+            className="mb-4"
+          >
             <ArrowLeft className="mr-2 h-4 w-4" />
             Voltar
           </Button>

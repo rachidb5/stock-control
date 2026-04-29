@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-   baseURL: import.meta.env.VITE_API_URL || 'https://estoque-api.fly.dev',
+  baseURL: import.meta.env.VITE_API_URL || 'https://estoque-api.fly.dev',
   //  baseURL: 'http://localhost:3000',
   headers: {
     'Content-Type': 'application/json',
@@ -34,7 +34,9 @@ api.interceptors.response.use(
 
     if (status === 401 && !isAuthRoute) {
       localStorage.removeItem("accessToken");
-      window.location.href = "/auth";
+      if (window.location.pathname !== "/auth") {
+        window.location.href = "/auth";
+      }
     }
 
     return Promise.reject(error);

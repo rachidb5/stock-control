@@ -72,7 +72,10 @@ const SaleDetail = () => {
             <CardDescription>A venda solicitada não foi encontrada.</CardDescription>
           </CardHeader>
           <CardContent>
-            <Button onClick={() => navigate("/")} className="w-full">
+            <Button
+              onClick={() => navigate("/produtos?tab=vendas")}
+              className="w-full"
+            >
               <ArrowLeft className="mr-2 h-4 w-4" />
               Voltar para início
             </Button>
@@ -88,7 +91,11 @@ const SaleDetail = () => {
     <div className="min-h-screen bg-background">
       <header className="border-b bg-card shadow-sm">
         <div className="container mx-auto px-4 py-6">
-          <Button variant="ghost" onClick={() => navigate("/")} className="mb-4">
+          <Button
+            variant="ghost"
+            onClick={() => navigate("/produtos?tab=vendas")}
+            className="mb-4"
+          >
             <ArrowLeft className="mr-2 h-4 w-4" />
             Voltar
           </Button>

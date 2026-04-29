@@ -1,4 +1,5 @@
 import api from "./api";
+import { requestData } from "./serviceUtils";
 
 export interface SoldDevice {
   id: string | number;
@@ -38,44 +39,41 @@ export const sellService = {
     limit?: number;
     search?: string;
   }): Promise<SoldDeviceResponse> => {
-    const response = await api.get<SoldDeviceResponse>("/sold-devices", { params });
-    return response.data;
+    return requestData(
+      api.get<SoldDeviceResponse>("/sold-devices", { params }),
+      "Não foi possível carregar as vendas.",
+    );
   },
 
   getSaleById: async (id: string | number): Promise<SoldDevice> => {
-    const response = await api.get<SoldDevice>(`/sold-devices/${id}`);
-    return response.data;
+    return requestData(
+      api.get<SoldDevice>(`/sold-devices/${id}`),
+      "Não foi possível carregar a venda.",
+    );
   },
 
   createSale: async (data: Omit<SoldDevice, "id">): Promise<SoldDevice> => {
-    try {
-      const response = await api.post<SoldDevice>("/sold-devices", data);
-      return response.data;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (error: any) {
-      console.error("Erro na API /sold-devices:", error);
-      throw {
-        message: error?.response?.data?.message || "Erro ao registrar venda",
-        status: error?.response?.status,
-      };
-    }
+    return requestData(
+      api.post<SoldDevice>("/sold-devices", data),
+      "Não foi possível registrar a venda.",
+    );
   },
 
   updateSale: async (
     id: string | number,
     data: Partial<Omit<SoldDevice, "id">>
   ): Promise<SoldDevice> => {
-    try {
-      const response = await api.put<SoldDevice>(`/sold-devices/${id}`, data);
-      return response.data;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (error: any) {
-      console.error("Erro na API /sold-devices:", error);
-      throw {
-        message: error?.response?.data?.message || "Erro ao atualizar venda",
-        status: error?.response?.status,
-      };
-    }
+    return requestData(
+      api.put<SoldDevice>(`/sold-devices/${id}`, data),
+      "Não foi possível atualizar a venda.",
+    );
+  },
+
+  deleteSale: async (id: string | number): Promise<void> => {
+    await requestData(
+      api.delete<void>(`/sold-devices/${id}`),
+      "Não foi possível remover a venda.",
+    );
   },
 };
 

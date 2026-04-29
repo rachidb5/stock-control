@@ -21,12 +21,18 @@ export function AppSidebar() {
 
   const menuItems = [
     { title: "Home", url: "/", icon: House },
+    { title: "Produtos", url: "/produtos", icon: Package },
     { title: "Clientes", url: "/clients", icon: Users },
     { title: "Painel Comercial", url: "/painel-comercial", icon: BarChart3 },
     { title: "Conta", url: "/conta", icon: User },
   ];
 
-  const isActive = (path: string) => location.pathname === path;
+  const isActive = (path: string) =>
+    location.pathname === path ||
+    (path === "/produtos" &&
+      (location.pathname.startsWith("/stock") ||
+        location.pathname.startsWith("/sale") ||
+        location.pathname.startsWith("/sell")));
 
   return (
     <Sidebar collapsible="icon">

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   Card,
   CardContent,
@@ -32,43 +32,78 @@ import {
   Upload,
   FileSpreadsheet,
   UserRound,
+  Loader2,
+  RefreshCw,
+  Trash2,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { toast } from "sonner";
 import { exportRowsToWorkbook, importRowsFromWorkbook } from "@/lib/excel";
+import sellService, {
+  SoldDevice,
+  SoldDeviceResponse,
+} from "@/services/sellService";
 
-interface SalesTableDevice {
-  id: string | number;
-  data: string;
-  aparelho: string;
-  cor: string;
-  condicao: string;
-  imei: string;
-  comprador: string;
-  numero_telefone: string;
-  aparelho_recebido: boolean;
-  observacao?: string;
-  valor_compra: number;
-  valor_total_venda: number;
-  vendedor_nome?: string;
-  canal_venda?: string;
-}
+type SalesTableDevice = SoldDevice;
 
 interface SalesTableProps {
-  devices: SalesTableDevice[];
+  devices?: SalesTableDevice[];
   showSeller?: boolean;
+  useApi?: boolean;
 }
 
-export function SalesTable({ devices, showSeller = false }: SalesTableProps) {
+export function SalesTable({
+  devices: providedDevices,
+  showSeller = false,
+  useApi = false,
+}: SalesTableProps) {
+  const [apiDevices, setApiDevices] = useState<SalesTableDevice[]>([]);
+  const [loading, setLoading] = useState(useApi);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [conditionFilter, setConditionFilter] = useState<string>("all");
   const [sellerFilter, setSellerFilter] = useState<string>("all");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: 20,
+    total: 0,
+  });
   const navigate = useNavigate();
+  const devices = useApi ? apiDevices : providedDevices ?? [];
+
+  const fetchSales = useCallback(async () => {
+    if (!useApi) {
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const response: SoldDeviceResponse = await sellService.getSales({
+        page: pagination.page,
+        limit: pagination.limit,
+        search: searchTerm || undefined,
+      });
+
+      setApiDevices(response.data);
+      setPagination((prev) => ({
+        ...prev,
+        total: response.total,
+      }));
+    } catch (error) {
+      console.error("Erro ao carregar vendas:", error);
+      toast.error("Erro ao carregar vendas. Tente novamente.");
+    } finally {
+      setLoading(false);
+    }
+  }, [pagination.limit, pagination.page, searchTerm, useApi]);
+
+  useEffect(() => {
+    fetchSales();
+  }, [fetchSales]);
 
   const sellers = Array.from(
     new Set(
@@ -79,9 +114,10 @@ export function SalesTable({ devices, showSeller = false }: SalesTableProps) {
   );
 
   const filteredDevices = devices.filter((device) => {
+    const normalizedSearch = searchTerm.toLowerCase();
     const matchesSearch =
-      device.aparelho.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      device.comprador.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      device.aparelho.toLowerCase().includes(normalizedSearch) ||
+      device.comprador.toLowerCase().includes(normalizedSearch) ||
       device.imei.includes(searchTerm);
 
     const matchesStatus =
@@ -113,11 +149,16 @@ export function SalesTable({ devices, showSeller = false }: SalesTableProps) {
     );
   });
 
-  const formatCurrency = (value: number) =>
+  const toNumber = (value: unknown) => {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : 0;
+  };
+
+  const formatCurrency = (value: unknown) =>
     new Intl.NumberFormat("pt-BR", {
       style: "currency",
       currency: "BRL",
-    }).format(value);
+    }).format(toNumber(value));
 
   const getConditionBadge = (condition: string) => {
     const variants: Record<
@@ -158,7 +199,33 @@ export function SalesTable({ devices, showSeller = false }: SalesTableProps) {
       return 0;
     }
 
-    return device.valor_total_venda - device.valor_compra;
+    return toNumber(device.valor_total_venda) - toNumber(device.valor_compra);
+  };
+
+  const handleSearch = (value: string) => {
+    setSearchTerm(value);
+    if (useApi) {
+      setPagination((prev) => ({ ...prev, page: 1 }));
+    }
+  };
+
+  const handlePageChange = (page: number) => {
+    setPagination((prev) => ({ ...prev, page }));
+  };
+
+  const handleDelete = async (id: string | number) => {
+    if (!window.confirm("Tem certeza que deseja remover esta venda?")) {
+      return;
+    }
+
+    try {
+      await sellService.deleteSale(id);
+      toast.success("Venda removida com sucesso!");
+      fetchSales();
+    } catch (error) {
+      console.error("Erro ao remover venda:", error);
+      toast.error("Erro ao remover venda.");
+    }
   };
 
   const exportToPDF = () => {
@@ -264,15 +331,28 @@ export function SalesTable({ devices, showSeller = false }: SalesTableProps) {
             </CardDescription>
           </div>
           <div className="flex flex-wrap gap-2">
-            <Button onClick={exportToPDF} variant="outline" size="sm">
+            {useApi && (
+              <Button
+                onClick={fetchSales}
+                variant="outline"
+                size="sm"
+                disabled={loading}
+              >
+                <RefreshCw
+                  className={`mr-2 h-4 w-4 ${loading ? "animate-spin" : ""}`}
+                />
+                Atualizar
+              </Button>
+            )}
+            <Button onClick={exportToPDF} variant="outline" size="sm" disabled={loading}>
               <FileDown className="mr-2 h-4 w-4" />
               PDF
             </Button>
-            <Button onClick={exportToExcel} variant="outline" size="sm">
+            <Button onClick={exportToExcel} variant="outline" size="sm" disabled={loading}>
               <FileSpreadsheet className="mr-2 h-4 w-4" />
               Excel
             </Button>
-            <Button variant="outline" size="sm" asChild>
+            <Button variant="outline" size="sm" asChild disabled={loading}>
               <label className="flex cursor-pointer items-center">
                 <Upload className="mr-2 h-4 w-4" />
                 Importar
@@ -292,8 +372,9 @@ export function SalesTable({ devices, showSeller = false }: SalesTableProps) {
             <Input
               placeholder="Buscar por aparelho, comprador ou IMEI..."
               value={searchTerm}
-              onChange={(event) => setSearchTerm(event.target.value)}
+              onChange={(event) => handleSearch(event.target.value)}
               className="pl-8"
+              disabled={loading}
             />
           </div>
           <div className={`grid gap-3 ${showSeller ? "md:grid-cols-5" : "md:grid-cols-4"}`}>
@@ -350,102 +431,174 @@ export function SalesTable({ devices, showSeller = false }: SalesTableProps) {
         </div>
       </CardHeader>
       <CardContent>
-        <div className="rounded-md border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Data</TableHead>
-                <TableHead>Aparelho</TableHead>
-                {showSeller && <TableHead>Vendedor</TableHead>}
-                <TableHead>Condição</TableHead>
-                <TableHead>Comprador</TableHead>
-                <TableHead>Valor venda</TableHead>
-                <TableHead>Lucro</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Ações</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredDevices.length === 0 ? (
-                <TableRow>
-                  <TableCell
-                    colSpan={showSeller ? 9 : 8}
-                    className="text-center text-muted-foreground"
-                  >
-                    Nenhuma venda encontrada com os filtros atuais.
-                  </TableCell>
-                </TableRow>
-              ) : (
-                filteredDevices.map((device) => {
-                  const profit = calculateProfit(device);
-
-                  return (
-                    <TableRow key={device.id}>
-                      <TableCell className="font-medium">
-                        {new Date(device.data).toLocaleDateString("pt-BR")}
-                      </TableCell>
-                      <TableCell>
-                        <div>
-                          <div className="font-medium">{device.aparelho}</div>
-                          <div className="text-xs text-muted-foreground">
-                            {device.cor}
-                            {device.canal_venda ? ` • ${device.canal_venda}` : ""}
-                          </div>
-                        </div>
-                      </TableCell>
-                      {showSeller && (
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <UserRound className="h-4 w-4 text-muted-foreground" />
-                            <span>{device.vendedor_nome ?? "Sem vendedor"}</span>
-                          </div>
-                        </TableCell>
-                      )}
-                      <TableCell>{getConditionBadge(device.condicao)}</TableCell>
-                      <TableCell>
-                        <div>
-                          <div className="font-medium">{device.comprador}</div>
-                          <div className="text-xs text-muted-foreground">
-                            {device.numero_telefone}
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>{formatCurrency(device.valor_total_venda)}</TableCell>
-                      <TableCell>
-                        <span className={profit >= 0 ? "text-success" : "text-destructive"}>
-                          {formatCurrency(profit)}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={device.aparelho_recebido ? "default" : "secondary"}>
-                          {device.aparelho_recebido ? "Concluído" : "Pendente"}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-1">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => navigate(`/sale/${device.id}`)}
-                          >
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => navigate(`/sale/edit/${device.id}`)}
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                        </div>
+        {loading ? (
+          <div className="flex flex-col items-center justify-center space-y-4 py-12">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <span className="text-muted-foreground">Carregando vendas...</span>
+          </div>
+        ) : (
+          <>
+            <div className="rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Data</TableHead>
+                    <TableHead>Aparelho</TableHead>
+                    {showSeller && <TableHead>Vendedor</TableHead>}
+                    <TableHead>Condição</TableHead>
+                    <TableHead>Comprador</TableHead>
+                    <TableHead>Valor venda</TableHead>
+                    <TableHead>Lucro</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Ações</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredDevices.length === 0 ? (
+                    <TableRow>
+                      <TableCell
+                        colSpan={showSeller ? 9 : 8}
+                        className="py-8 text-center text-muted-foreground"
+                      >
+                        Nenhuma venda encontrada com os filtros atuais.
                       </TableCell>
                     </TableRow>
-                  );
-                })
-              )}
-            </TableBody>
-          </Table>
-        </div>
+                  ) : (
+                    filteredDevices.map((device) => {
+                      const profit = calculateProfit(device);
+
+                      return (
+                        <TableRow key={device.id}>
+                          <TableCell className="font-medium">
+                            {new Date(device.data).toLocaleDateString("pt-BR")}
+                          </TableCell>
+                          <TableCell>
+                            <div>
+                              <div className="font-medium">{device.aparelho}</div>
+                              <div className="text-xs text-muted-foreground">
+                                {device.cor}
+                                {device.canal_venda
+                                  ? ` • ${device.canal_venda}`
+                                  : ""}
+                              </div>
+                            </div>
+                          </TableCell>
+                          {showSeller && (
+                            <TableCell>
+                              <div className="flex items-center gap-2">
+                                <UserRound className="h-4 w-4 text-muted-foreground" />
+                                <span>
+                                  {device.vendedor_nome ?? "Sem vendedor"}
+                                </span>
+                              </div>
+                            </TableCell>
+                          )}
+                          <TableCell>{getConditionBadge(device.condicao)}</TableCell>
+                          <TableCell>
+                            <div>
+                              <div className="font-medium">{device.comprador}</div>
+                              <div className="text-xs text-muted-foreground">
+                                {device.numero_telefone}
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            {formatCurrency(device.valor_total_venda)}
+                          </TableCell>
+                          <TableCell>
+                            <span
+                              className={
+                                profit >= 0 ? "text-success" : "text-destructive"
+                              }
+                            >
+                              {formatCurrency(profit)}
+                            </span>
+                          </TableCell>
+                          <TableCell>
+                            <Badge
+                              variant={
+                                device.aparelho_recebido ? "default" : "secondary"
+                              }
+                            >
+                              {device.aparelho_recebido
+                                ? "Concluído"
+                                : "Pendente"}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex justify-end gap-1">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => navigate(`/sale/${device.id}`)}
+                                title="Ver detalhes"
+                              >
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => navigate(`/sale/edit/${device.id}`)}
+                                title="Editar"
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              {useApi && (
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => handleDelete(device.id)}
+                                  title="Excluir"
+                                  className="text-red-600 hover:bg-red-50 hover:text-red-700"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              )}
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+
+            {useApi && pagination.total > pagination.limit && (
+              <div className="mt-4 flex flex-col items-center justify-between gap-4 sm:flex-row">
+                <div className="text-sm text-muted-foreground">
+                  Mostrando {(pagination.page - 1) * pagination.limit + 1} a{" "}
+                  {Math.min(pagination.page * pagination.limit, pagination.total)}{" "}
+                  de {pagination.total} vendas
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handlePageChange(pagination.page - 1)}
+                    disabled={pagination.page === 1 || loading}
+                  >
+                    Anterior
+                  </Button>
+                  <span className="flex items-center px-3 text-sm">
+                    Página {pagination.page}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handlePageChange(pagination.page + 1)}
+                    disabled={
+                      pagination.page * pagination.limit >= pagination.total ||
+                      loading
+                    }
+                  >
+                    Próxima
+                  </Button>
+                </div>
+              </div>
+            )}
+          </>
+        )}
       </CardContent>
     </Card>
   );

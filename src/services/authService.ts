@@ -1,4 +1,5 @@
 import api from "./api";
+import { requestData } from "./serviceUtils";
 
 /* =======================
  * Interfaces
@@ -22,8 +23,9 @@ export interface AuthUser {
 }
 
 export interface AuthResponse {
-  accessToken: string;
-  user: AuthUser;
+  access_token?: string;
+  accessToken?: string;
+  user?: AuthUser;
 }
 
 /* =======================
@@ -31,64 +33,35 @@ export interface AuthResponse {
  * ======================= */
 
 export const authService = {
-  // Login
   login: async (data: LoginPayload): Promise<AuthResponse> => {
-    try {
-      const response = await api.post<AuthResponse>("/auth/login", data);
-      return response.data;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (error: any) {
-      console.error("Erro na API /auth/login:", error);
-
-      throw {
-        message:
-          error?.response?.data?.message || "Erro ao realizar login",
-        status: error?.response?.status,
-      };
-    }
+    return requestData(
+      api.post<AuthResponse>("/auth/login", data),
+      "Não foi possível realizar o login.",
+    );
   },
 
-  // Registro
   register: async (data: RegisterPayload): Promise<AuthUser> => {
-    try {
-      const response = await api.post<AuthUser>("/auth/register", data);
-      return response.data;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (error: any) {
-      console.error("Erro na API /auth/register:", error);
-
-      throw {
-        message:
-          error?.response?.data?.message || "Erro ao criar usuário",
-        status: error?.response?.status,
-      };
-    }
+    return requestData(
+      api.post<AuthUser>("/auth/register", data),
+      "Não foi possível criar o usuário.",
+    );
   },
 
-  // Buscar usuário autenticado
   me: async (): Promise<AuthUser> => {
-    try {
-      const response = await api.get<AuthUser>("/auth/me");
-      return response.data;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (error: any) {
-      console.error("Erro na API /auth/me:", error);
-
-      throw {
-        message:
-          error?.response?.data?.message || "Erro ao buscar usuário",
-        status: error?.response?.status,
-      };
-    }
+    return requestData(
+      api.get<AuthUser>("/auth/me"),
+      "Não foi possível buscar o usuário autenticado.",
+    );
   },
 
-  // Logout (opcional — depende do backend)
   logout: async (): Promise<void> => {
     try {
-      await api.post("/auth/logout");
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (error: any) {
-      console.error("Erro na API /auth/logout:", error);
+      await requestData(
+        api.post<void>("/auth/logout"),
+        "Não foi possível encerrar a sessão.",
+      );
+    } finally {
+      localStorage.removeItem("accessToken");
     }
   },
 };

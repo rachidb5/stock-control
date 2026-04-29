@@ -237,10 +237,10 @@ export const StockTable = ({ refreshTrigger, initialSearch = "", onStatsUpdate }
     setPagination(prev => ({ ...prev, page: 1 }));
   };
 
-  const handleDelete = async (imei: string) => {
+  const handleDelete = async (id: string | number) => {
     if (window.confirm("Tem certeza que deseja remover este item do estoque?")) {
       try {
-        await stockService.deleteStock(imei);
+        await stockService.deleteStock(id);
         toast.success("Item removido com sucesso!");
         fetchStock();
       } catch (error) {
@@ -425,7 +425,7 @@ export const StockTable = ({ refreshTrigger, initialSearch = "", onStatsUpdate }
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => handleDelete(device.imei)}
+                              onClick={() => handleDelete(device.id)}
                               title="Excluir"
                               className="text-red-600 hover:text-red-700 hover:bg-red-50"
                             >
