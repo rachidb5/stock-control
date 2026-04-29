@@ -1,5 +1,5 @@
-// StockTable.tsx (versão atualizada)
 import { useState, useEffect, useCallback } from "react";
+import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -17,6 +17,11 @@ import { toast } from "sonner";
 interface StockTableProps {
   refreshTrigger?: boolean;
   initialSearch?: string;
+  search?: string;
+  observation?: string;
+  hideFilters?: boolean;
+  page?: number;
+  onPageChange?: (page: number) => void;
   onStatsUpdate?: (stats: { total: number; totalValue: number }) => void;
 }
 
@@ -59,57 +64,72 @@ function getRowNumber(row: ExcelRow, keys: string[]) {
   return 0;
 }
 
-export const StockTable = ({ refreshTrigger, initialSearch = "", onStatsUpdate }: StockTableProps) => {
-  const [devices, setDevices] = useState<StockItem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState(initialSearch);
-  const [observationFilter, setObservationFilter] = useState<string>("all");
+export const StockTable = ({
+  refreshTrigger,
+  initialSearch = "",
+  search,
+  observation,
+  hideFilters = false,
+  page,
+  onPageChange,
+  onStatsUpdate,
+}: StockTableProps) => {
+  const [localSearchTerm, setLocalSearchTerm] = useState(initialSearch);
+  const [localObservationFilter, setLocalObservationFilter] = useState<string>("all");
   const [supplierFilter, setSupplierFilter] = useState<string>("all");
   const [pagination, setPagination] = useState({
     page: 1,
     limit: 20,
-    total: 0,
-    totalValue: 0
   });
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const searchTerm = search ?? localSearchTerm;
+  const observationFilter = observation ?? localObservationFilter;
+  const currentPage = page ?? pagination.page;
 
-  const fetchStock = useCallback(async () => {
-    try {
-      setLoading(true);
-      const params = {
-        page: pagination.page,
+  const stockQuery = useQuery({
+    queryKey: ["stock", currentPage, pagination.limit, searchTerm],
+    queryFn: () =>
+      stockService.getStock({
+        page: currentPage,
         limit: pagination.limit,
-        search: searchTerm || undefined
-      };
+        search: searchTerm || undefined,
+      }),
+    placeholderData: keepPreviousData,
+    staleTime: 5 * 60 * 1000,
+  });
 
-      const response: StockResponse = await stockService.getStock(params);
-      setDevices(response.data);
-      // Calcular valor total do estoque
-      const totalValue = response.data.reduce((sum, device) => sum + (device.preco || 0), 0);
-      
-      setPagination(prev => ({
-        ...prev,
-        total: response.total,
-        totalValue
-      }));
+  const response = stockQuery.data as StockResponse | undefined;
+  const devices = response?.data ?? [];
+  const total = response?.total ?? 0;
+  const totalValue = devices.reduce(
+    (sum, device) => sum + (Number(device.valor_unitario ?? device.preco) || 0),
+    0,
+  );
+  const loading = stockQuery.isLoading;
+  const { refetch: refetchStock } = stockQuery;
 
-      // Passar estatísticas para o componente pai
-      if (onStatsUpdate) {
-        onStatsUpdate({
-          total: response.total,
-          totalValue
-        });
-      }
-    } catch (error) {
-      console.error("Erro ao buscar estoque:", error);
-      toast.error("Erro ao carregar estoque. Tente novamente.");
-    } finally {
-      setLoading(false);
-    }
-  }, [pagination.page, pagination.limit, searchTerm, onStatsUpdate]);
+  const fetchStock = useCallback(() => {
+    refetchStock();
+  }, [refetchStock]);
 
   useEffect(() => {
-    fetchStock();
+    if (stockQuery.isError) {
+      console.error("Erro ao buscar estoque:", stockQuery.error);
+      toast.error("Erro ao carregar estoque. Tente novamente.");
+    }
+  }, [stockQuery.error, stockQuery.isError]);
+
+  useEffect(() => {
+    if (onStatsUpdate && response) {
+      onStatsUpdate({ total, totalValue });
+    }
+  }, [onStatsUpdate, response, total, totalValue]);
+
+  useEffect(() => {
+    if (refreshTrigger !== undefined) {
+      fetchStock();
+    }
   }, [fetchStock, refreshTrigger]);
 
   const suppliers = Array.from(new Set(devices.map(d => d.fornecedor)));
@@ -219,7 +239,7 @@ export const StockTable = ({ refreshTrigger, initialSearch = "", onStatsUpdate }
       }
 
       toast.success("Estoque importado com sucesso!");
-      fetchStock();
+      queryClient.invalidateQueries({ queryKey: ["stock"] });
     } catch (error) {
       console.error("Erro ao importar Excel:", error);
       toast.error("Erro ao importar arquivo. Verifique o formato.");
@@ -229,12 +249,17 @@ export const StockTable = ({ refreshTrigger, initialSearch = "", onStatsUpdate }
   };
 
   const handlePageChange = (newPage: number) => {
+    if (onPageChange) {
+      onPageChange(newPage);
+      return;
+    }
+
     setPagination(prev => ({ ...prev, page: newPage }));
   };
 
   const handleSearch = (value: string) => {
-    setSearchTerm(value);
-    setPagination(prev => ({ ...prev, page: 1 }));
+    setLocalSearchTerm(value);
+    handlePageChange(1);
   };
 
   const handleDelete = async (id: string | number) => {
@@ -242,7 +267,7 @@ export const StockTable = ({ refreshTrigger, initialSearch = "", onStatsUpdate }
       try {
         await stockService.deleteStock(id);
         toast.success("Item removido com sucesso!");
-        fetchStock();
+        queryClient.invalidateQueries({ queryKey: ["stock"] });
       } catch (error) {
         console.error("Erro ao remover item:", error);
         toast.error("Erro ao remover item.");
@@ -261,8 +286,8 @@ export const StockTable = ({ refreshTrigger, initialSearch = "", onStatsUpdate }
                 "Carregando..."
               ) : (
                 <>
-                  {filteredDevices.length} de {pagination.total} aparelhos - 
-                  Valor total: {formatCurrency(pagination.totalValue)}
+                  {filteredDevices.length} de {total} aparelhos - 
+                  Valor total: {formatCurrency(totalValue)}
                 </>
               )}
             </CardDescription>
@@ -272,9 +297,9 @@ export const StockTable = ({ refreshTrigger, initialSearch = "", onStatsUpdate }
               onClick={fetchStock} 
               variant="outline" 
               size="sm" 
-              disabled={loading}
+              disabled={stockQuery.isFetching}
             >
-              <RefreshCw className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`} />
+              <RefreshCw className={`h-4 w-4 mr-2 ${stockQuery.isFetching ? "animate-spin" : ""}`} />
               Atualizar
             </Button>
             <Button onClick={exportToPDF} variant="outline" size="sm" disabled={loading}>
@@ -299,7 +324,7 @@ export const StockTable = ({ refreshTrigger, initialSearch = "", onStatsUpdate }
             </Button>
           </div>
         </div>
-        <div className="space-y-4 mt-4">
+        {!hideFilters && <div className="space-y-4 mt-4">
           <div className="relative">
             <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
@@ -330,7 +355,7 @@ export const StockTable = ({ refreshTrigger, initialSearch = "", onStatsUpdate }
             </Select>
             <Select 
               value={observationFilter} 
-              onValueChange={setObservationFilter}
+              onValueChange={setLocalObservationFilter}
               disabled={loading}
             >
               <SelectTrigger>
@@ -343,7 +368,7 @@ export const StockTable = ({ refreshTrigger, initialSearch = "", onStatsUpdate }
               </SelectContent>
             </Select>
           </div>
-        </div>
+        </div>}
       </CardHeader>
       <CardContent>
         {loading ? (
@@ -450,30 +475,30 @@ export const StockTable = ({ refreshTrigger, initialSearch = "", onStatsUpdate }
             </div>
             
             {/* Paginação */}
-            {pagination.total > pagination.limit && (
+            {total > pagination.limit && (
               <div className="flex flex-col sm:flex-row items-center justify-between mt-4 gap-4">
                 <div className="text-sm text-muted-foreground">
-                  Mostrando {((pagination.page - 1) * pagination.limit) + 1} a{" "}
-                  {Math.min(pagination.page * pagination.limit, pagination.total)} de{" "}
-                  {pagination.total} itens
+                  Mostrando {((currentPage - 1) * pagination.limit) + 1} a{" "}
+                  {Math.min(currentPage * pagination.limit, total)} de{" "}
+                  {total} itens
                 </div>
                 <div className="flex gap-2">
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => handlePageChange(pagination.page - 1)}
-                    disabled={pagination.page === 1 || loading}
+                    onClick={() => handlePageChange(currentPage - 1)}
+                    disabled={currentPage === 1 || loading}
                   >
                     Anterior
                   </Button>
                   <span className="flex items-center px-3 text-sm">
-                    Página {pagination.page}
+                    Página {currentPage}
                   </span>
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => handlePageChange(pagination.page + 1)}
-                    disabled={pagination.page * pagination.limit >= pagination.total || loading}
+                    onClick={() => handlePageChange(currentPage + 1)}
+                    disabled={currentPage * pagination.limit >= total || loading}
                   >
                     Próxima
                   </Button>

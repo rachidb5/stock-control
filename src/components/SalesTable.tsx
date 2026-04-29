@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Card,
   CardContent,
@@ -52,58 +53,77 @@ interface SalesTableProps {
   devices?: SalesTableDevice[];
   showSeller?: boolean;
   useApi?: boolean;
+  search?: string;
+  status?: string;
+  condition?: string;
+  startDate?: string;
+  endDate?: string;
+  hideFilters?: boolean;
+  page?: number;
+  onPageChange?: (page: number) => void;
 }
 
 export function SalesTable({
   devices: providedDevices,
   showSeller = false,
   useApi = false,
+  search,
+  status,
+  condition,
+  startDate: controlledStartDate,
+  endDate: controlledEndDate,
+  hideFilters = false,
+  page,
+  onPageChange,
 }: SalesTableProps) {
-  const [apiDevices, setApiDevices] = useState<SalesTableDevice[]>([]);
-  const [loading, setLoading] = useState(useApi);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [conditionFilter, setConditionFilter] = useState<string>("all");
+  const [localSearchTerm, setLocalSearchTerm] = useState("");
+  const [localStatusFilter, setLocalStatusFilter] = useState<string>("all");
+  const [localConditionFilter, setLocalConditionFilter] = useState<string>("all");
   const [sellerFilter, setSellerFilter] = useState<string>("all");
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
+  const [localStartDate, setLocalStartDate] = useState("");
+  const [localEndDate, setLocalEndDate] = useState("");
   const [pagination, setPagination] = useState({
     page: 1,
     limit: 20,
-    total: 0,
   });
   const navigate = useNavigate();
-  const devices = useApi ? apiDevices : providedDevices ?? [];
+  const queryClient = useQueryClient();
+  const searchTerm = search ?? localSearchTerm;
+  const statusFilter = status ?? localStatusFilter;
+  const conditionFilter = condition ?? localConditionFilter;
+  const startDate = controlledStartDate ?? localStartDate;
+  const endDate = controlledEndDate ?? localEndDate;
+  const currentPage = page ?? pagination.page;
 
-  const fetchSales = useCallback(async () => {
-    if (!useApi) {
-      return;
-    }
-
-    try {
-      setLoading(true);
-      const response: SoldDeviceResponse = await sellService.getSales({
-        page: pagination.page,
+  const salesQuery = useQuery({
+    queryKey: ["sold-devices", currentPage, pagination.limit, searchTerm],
+    queryFn: () =>
+      sellService.getSales({
+        page: currentPage,
         limit: pagination.limit,
         search: searchTerm || undefined,
-      });
+      }),
+    enabled: useApi,
+    placeholderData: keepPreviousData,
+    staleTime: 5 * 60 * 1000,
+  });
 
-      setApiDevices(response.data);
-      setPagination((prev) => ({
-        ...prev,
-        total: response.total,
-      }));
-    } catch (error) {
-      console.error("Erro ao carregar vendas:", error);
-      toast.error("Erro ao carregar vendas. Tente novamente.");
-    } finally {
-      setLoading(false);
-    }
-  }, [pagination.limit, pagination.page, searchTerm, useApi]);
+  const apiResponse = salesQuery.data as SoldDeviceResponse | undefined;
+  const devices = useApi ? apiResponse?.data ?? [] : providedDevices ?? [];
+  const total = useApi ? apiResponse?.total ?? 0 : devices.length;
+  const loading = useApi ? salesQuery.isLoading : false;
+  const { refetch: refetchSales } = salesQuery;
+
+  const fetchSales = useCallback(() => {
+    refetchSales();
+  }, [refetchSales]);
 
   useEffect(() => {
-    fetchSales();
-  }, [fetchSales]);
+    if (salesQuery.isError) {
+      console.error("Erro ao carregar vendas:", salesQuery.error);
+      toast.error("Erro ao carregar vendas. Tente novamente.");
+    }
+  }, [salesQuery.error, salesQuery.isError]);
 
   const sellers = Array.from(
     new Set(
@@ -203,13 +223,18 @@ export function SalesTable({
   };
 
   const handleSearch = (value: string) => {
-    setSearchTerm(value);
+    setLocalSearchTerm(value);
     if (useApi) {
-      setPagination((prev) => ({ ...prev, page: 1 }));
+      handlePageChange(1);
     }
   };
 
   const handlePageChange = (page: number) => {
+    if (onPageChange) {
+      onPageChange(page);
+      return;
+    }
+
     setPagination((prev) => ({ ...prev, page }));
   };
 
@@ -221,7 +246,7 @@ export function SalesTable({
     try {
       await sellService.deleteSale(id);
       toast.success("Venda removida com sucesso!");
-      fetchSales();
+      queryClient.invalidateQueries({ queryKey: ["sold-devices"] });
     } catch (error) {
       console.error("Erro ao remover venda:", error);
       toast.error("Erro ao remover venda.");
@@ -366,7 +391,7 @@ export function SalesTable({
             </Button>
           </div>
         </div>
-        <div className="mt-4 space-y-4">
+        {!hideFilters && <div className="mt-4 space-y-4">
           <div className="relative">
             <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
@@ -382,15 +407,15 @@ export function SalesTable({
               type="date"
               placeholder="Data inicial"
               value={startDate}
-              onChange={(event) => setStartDate(event.target.value)}
+              onChange={(event) => setLocalStartDate(event.target.value)}
             />
             <Input
               type="date"
               placeholder="Data final"
               value={endDate}
-              onChange={(event) => setEndDate(event.target.value)}
+              onChange={(event) => setLocalEndDate(event.target.value)}
             />
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <Select value={statusFilter} onValueChange={setLocalStatusFilter}>
               <SelectTrigger>
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
@@ -400,7 +425,7 @@ export function SalesTable({
                 <SelectItem value="pending">Pendente</SelectItem>
               </SelectContent>
             </Select>
-            <Select value={conditionFilter} onValueChange={setConditionFilter}>
+            <Select value={conditionFilter} onValueChange={setLocalConditionFilter}>
               <SelectTrigger>
                 <SelectValue placeholder="Condição" />
               </SelectTrigger>
@@ -428,7 +453,7 @@ export function SalesTable({
               </Select>
             )}
           </div>
-        </div>
+        </div>}
       </CardHeader>
       <CardContent>
         {loading ? (
@@ -564,31 +589,31 @@ export function SalesTable({
               </Table>
             </div>
 
-            {useApi && pagination.total > pagination.limit && (
+            {useApi && total > pagination.limit && (
               <div className="mt-4 flex flex-col items-center justify-between gap-4 sm:flex-row">
                 <div className="text-sm text-muted-foreground">
-                  Mostrando {(pagination.page - 1) * pagination.limit + 1} a{" "}
-                  {Math.min(pagination.page * pagination.limit, pagination.total)}{" "}
-                  de {pagination.total} vendas
+                  Mostrando {(currentPage - 1) * pagination.limit + 1} a{" "}
+                  {Math.min(currentPage * pagination.limit, total)}{" "}
+                  de {total} vendas
                 </div>
                 <div className="flex gap-2">
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => handlePageChange(pagination.page - 1)}
-                    disabled={pagination.page === 1 || loading}
+                    onClick={() => handlePageChange(currentPage - 1)}
+                    disabled={currentPage === 1 || loading}
                   >
                     Anterior
                   </Button>
                   <span className="flex items-center px-3 text-sm">
-                    Página {pagination.page}
+                    Página {currentPage}
                   </span>
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => handlePageChange(pagination.page + 1)}
+                    onClick={() => handlePageChange(currentPage + 1)}
                     disabled={
-                      pagination.page * pagination.limit >= pagination.total ||
+                      currentPage * pagination.limit >= total ||
                       loading
                     }
                   >

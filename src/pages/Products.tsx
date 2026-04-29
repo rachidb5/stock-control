@@ -4,8 +4,16 @@ import { Layout } from "@/components/Layout";
 import { SalesTable } from "@/components/SalesTable";
 import { StockTable } from "@/components/StockTable";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Package, ShoppingCart } from "lucide-react";
+import { Plus, Package, Search, ShoppingCart, X } from "lucide-react";
 
 const validTabs = new Set(["estoque", "vendas"]);
 
@@ -16,9 +24,44 @@ export default function Products() {
     const tab = searchParams.get("tab") ?? "estoque";
     return validTabs.has(tab) ? tab : "estoque";
   }, [searchParams]);
+  const search = searchParams.get("busca") ?? "";
+  const observation = searchParams.get("observacao") ?? "all";
+  const status = searchParams.get("status") ?? "all";
+  const condition = searchParams.get("condicao") ?? "all";
+  const startDate = searchParams.get("inicio") ?? "";
+  const endDate = searchParams.get("fim") ?? "";
+  const page = Math.max(Number(searchParams.get("pagina") ?? 1) || 1, 1);
 
   const handleTabChange = (tab: string) => {
-    setSearchParams({ tab });
+    const next = new URLSearchParams(searchParams);
+    next.set("tab", tab);
+    next.delete("pagina");
+    setSearchParams(next);
+  };
+
+  const updateFilter = (key: string, value: string) => {
+    const next = new URLSearchParams(searchParams);
+    next.set("tab", activeTab);
+    next.delete("pagina");
+
+    if (!value || value === "all") {
+      next.delete(key);
+    } else {
+      next.set(key, value);
+    }
+
+    setSearchParams(next);
+  };
+
+  const clearFilters = () => {
+    setSearchParams({ tab: activeTab });
+  };
+
+  const handlePageChange = (nextPage: number) => {
+    const next = new URLSearchParams(searchParams);
+    next.set("tab", activeTab);
+    next.set("pagina", String(nextPage));
+    setSearchParams(next);
   };
 
   const handlePrimaryAction = () => {
@@ -42,6 +85,89 @@ export default function Products() {
           </Button>
         </div>
 
+        <div className="grid gap-3 rounded-lg border bg-card p-4 shadow-sm md:grid-cols-2 lg:grid-cols-5">
+          <div className="relative md:col-span-2">
+            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              value={search}
+              onChange={(event) => updateFilter("busca", event.target.value)}
+              placeholder={
+                activeTab === "vendas"
+                  ? "Buscar por aparelho, comprador ou IMEI..."
+                  : "Buscar por modelo, cor ou IMEI..."
+              }
+              className="pl-8"
+            />
+          </div>
+
+          {activeTab === "estoque" ? (
+            <Select
+              value={observation}
+              onValueChange={(value) => updateFilter("observacao", value)}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Observação" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas as observações</SelectItem>
+                <SelectItem value="with">Com observação</SelectItem>
+                <SelectItem value="without">Sem observação</SelectItem>
+              </SelectContent>
+            </Select>
+          ) : (
+            <>
+              <Input
+                type="date"
+                value={startDate}
+                onChange={(event) => updateFilter("inicio", event.target.value)}
+              />
+              <Input
+                type="date"
+                value={endDate}
+                onChange={(event) => updateFilter("fim", event.target.value)}
+              />
+              <Select
+                value={status}
+                onValueChange={(value) => updateFilter("status", value)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos os status</SelectItem>
+                  <SelectItem value="completed">Concluído</SelectItem>
+                  <SelectItem value="pending">Pendente</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select
+                value={condition}
+                onValueChange={(value) => updateFilter("condicao", value)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Condição" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas as condições</SelectItem>
+                  <SelectItem value="Novo">Novo</SelectItem>
+                  <SelectItem value="Seminovo">Seminovo</SelectItem>
+                  <SelectItem value="Usado">Usado</SelectItem>
+                  <SelectItem value="Recondicionado">Recondicionado</SelectItem>
+                </SelectContent>
+              </Select>
+            </>
+          )}
+
+          <Button
+            type="button"
+            variant="outline"
+            onClick={clearFilters}
+            className="lg:col-start-5"
+          >
+            <X className="mr-2 h-4 w-4" />
+            Limpar filtros
+          </Button>
+        </div>
+
         <Tabs value={activeTab} onValueChange={handleTabChange}>
           <TabsList className="grid w-full max-w-md grid-cols-2">
             <TabsTrigger value="estoque" className="gap-2">
@@ -55,10 +181,27 @@ export default function Products() {
           </TabsList>
 
           <TabsContent value="estoque" className="mt-6">
-            <StockTable />
+            <StockTable
+              search={search}
+              observation={observation}
+              hideFilters
+              page={page}
+              onPageChange={handlePageChange}
+            />
           </TabsContent>
           <TabsContent value="vendas" className="mt-6">
-            <SalesTable showSeller useApi />
+            <SalesTable
+              showSeller
+              useApi
+              hideFilters
+              search={search}
+              status={status}
+              condition={condition}
+              startDate={startDate}
+              endDate={endDate}
+              page={page}
+              onPageChange={handlePageChange}
+            />
           </TabsContent>
         </Tabs>
       </div>
