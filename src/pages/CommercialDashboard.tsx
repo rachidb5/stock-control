@@ -52,7 +52,7 @@ export default function CommercialDashboard() {
           stockSummary={stockSummary}
         />
 
-        <SalesTable devices={visibleSales} showSeller={currentUser.role === "admin"} />
+        <SalesTable devices={visibleSales} showSeller={currentUser.role === "gestor"} />
       </div>
     </Layout>
   );

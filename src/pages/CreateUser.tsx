@@ -33,6 +33,7 @@ import {
 import { masks, validators } from "@/hooks/use-masks";
 import { Layout } from "@/components/Layout";
 import { roleDescriptions, selectCurrentUser, useSessionStore, UserRole } from "@/stores/useSessionStore";
+import userService from "@/services/userService";
 
 interface ValidationErrors {
   name?: string;
@@ -59,7 +60,7 @@ export default function CreateUser() {
     address: "",
     city: "",
     company: currentUser.company,
-    role: "seller" as UserRole,
+    role: "vendedor" as UserRole,
     monthlyGoal: "45000",
     password: "",
     confirmPassword: "",
@@ -140,9 +141,16 @@ export default function CreateUser() {
     setIsLoading(true);
 
     try {
-      await new Promise((resolve) => setTimeout(resolve, 600));
+      const createdUser = await userService.createUser({
+        username: userData.name,
+        email: userData.email,
+        phone: userData.phone.replace(/\D/g, ""),
+        password: userData.password,
+        role: userData.role,
+      });
 
       addUser({
+        id: createdUser.id,
         name: userData.name,
         employeeId: userData.employeeId,
         email: userData.email,
@@ -160,10 +168,13 @@ export default function CreateUser() {
       });
 
       navigate("/conta");
-    } catch {
+    } catch (error) {
       toast({
         title: "Erro ao criar usuário",
-        description: "Ocorreu um erro ao salvar o novo usuário.",
+        description:
+          error instanceof Error
+            ? error.message
+            : "Ocorreu um erro ao salvar o novo usuário.",
         variant: "destructive",
       });
     } finally {
@@ -171,14 +182,14 @@ export default function CreateUser() {
     }
   };
 
-  if (currentUser.role !== "admin") {
+  if (currentUser.role !== "gestor") {
     return (
       <Layout>
         <Card className="max-w-2xl">
           <CardHeader>
             <CardTitle>Acesso restrito</CardTitle>
             <CardDescription>
-              Apenas administradores podem cadastrar novos usuários.
+              Apenas gestores podem cadastrar novos usuários.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -202,7 +213,7 @@ export default function CreateUser() {
           <div>
             <h1 className="text-3xl font-bold tracking-tight">Criar Usuário</h1>
             <p className="text-muted-foreground">
-              Cadastre um novo vendedor ou administrador com matrícula e meta inicial.
+              Cadastre um novo vendedor ou gestor com matrícula e meta inicial.
             </p>
           </div>
         </div>
@@ -326,8 +337,8 @@ export default function CreateUser() {
                   <SelectValue placeholder="Selecione um perfil" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="seller">Vendedor</SelectItem>
-                  <SelectItem value="admin">Administrador</SelectItem>
+                  <SelectItem value="vendedor">Vendedor</SelectItem>
+                  <SelectItem value="gestor">Gestor</SelectItem>
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground">{roleDescriptions[userData.role]}</p>

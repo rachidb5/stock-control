@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 
-export type UserRole = "seller" | "admin";
+export type UserRole = "vendedor" | "gestor";
 
 export interface AppUser {
   id: string;
@@ -16,7 +16,7 @@ export interface AppUser {
   monthlyGoal: number;
 }
 
-export type CreateUserInput = Omit<AppUser, "id">;
+export type CreateUserInput = Omit<AppUser, "id"> & { id?: string };
 
 interface SessionState {
   users: AppUser[];
@@ -30,13 +30,13 @@ interface SessionState {
 type PersistedSessionState = Partial<Pick<SessionState, "users" | "currentUserId">>;
 
 export const roleLabels: Record<UserRole, string> = {
-  seller: "Vendedor",
-  admin: "Administrador",
+  vendedor: "Vendedor",
+  gestor: "Gestor",
 };
 
 export const roleDescriptions: Record<UserRole, string> = {
-  seller: "Foco em acompanhar a própria carteira, meta e vendas do mês.",
-  admin: "Acesso gerencial para acompanhar equipe, comparativos e indicadores.",
+  vendedor: "Foco em acompanhar a própria carteira, meta e vendas do mês.",
+  gestor: "Acesso gerencial para acompanhar equipe, comparativos e indicadores.",
 };
 
 export const defaultUsers: AppUser[] = [
@@ -49,7 +49,7 @@ export const defaultUsers: AppUser[] = [
     address: "Rua das Flores, 123",
     city: "São Paulo",
     company: "StockControl Mobile",
-    role: "seller",
+    role: "vendedor",
     monthlyGoal: 48000,
   },
   {
@@ -61,7 +61,7 @@ export const defaultUsers: AppUser[] = [
     address: "Av. Brasil, 456",
     city: "São Paulo",
     company: "StockControl Mobile",
-    role: "seller",
+    role: "vendedor",
     monthlyGoal: 56000,
   },
   {
@@ -73,7 +73,7 @@ export const defaultUsers: AppUser[] = [
     address: "Rua Central, 50",
     city: "Campinas",
     company: "StockControl Mobile",
-    role: "seller",
+    role: "vendedor",
     monthlyGoal: 52000,
   },
   {
@@ -85,18 +85,27 @@ export const defaultUsers: AppUser[] = [
     address: "Alameda Santos, 700",
     city: "São Paulo",
     company: "StockControl Mobile",
-    role: "admin",
+    role: "gestor",
     monthlyGoal: 156000,
   },
 ];
 
 const defaultUsersById = new Map(defaultUsers.map((user) => [user.id, user]));
 
+function normalizeRole(role?: string): UserRole {
+  if (role === "gestor" || role === "admin") {
+    return "gestor";
+  }
+
+  return "vendedor";
+}
+
 function normalizeUser(user: Partial<AppUser>, index: number): AppUser {
   const fallback = user.id ? defaultUsersById.get(user.id) : undefined;
+  const role = normalizeRole(user.role ?? fallback?.role);
   const generatedEmployeeId =
-    user.role === "admin"
-      ? `ADM-${String(index + 1).padStart(4, "0")}`
+    role === "gestor"
+      ? `GES-${String(index + 1).padStart(4, "0")}`
       : `VEN-${String(index + 1).padStart(4, "0")}`;
 
   return {
@@ -108,7 +117,7 @@ function normalizeUser(user: Partial<AppUser>, index: number): AppUser {
     address: user.address ?? fallback?.address ?? "",
     city: user.city ?? fallback?.city ?? "",
     company: user.company ?? fallback?.company ?? "StockControl Mobile",
-    role: user.role ?? fallback?.role ?? "seller",
+    role,
     monthlyGoal: user.monthlyGoal ?? fallback?.monthlyGoal ?? 45000,
   };
 }
@@ -155,10 +164,11 @@ export const useSessionStore = create<SessionState>()(
           ),
         })),
       addUser: (data) => {
-        const newId = `user-${crypto.randomUUID()}`;
+        const { id, ...userData } = data;
+        const newId = id ?? `user-${crypto.randomUUID()}`;
 
         set((state) => ({
-          users: [...state.users, { id: newId, ...data }],
+          users: [...state.users, { id: newId, ...userData }],
         }));
 
         return newId;
@@ -167,7 +177,7 @@ export const useSessionStore = create<SessionState>()(
     }),
     {
       name: "stock-control-session",
-      version: 2,
+      version: 3,
       storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({
         users: state.users,

@@ -90,7 +90,7 @@ function isSameMonth(dateString: string, referenceDate: Date) {
 }
 
 export function getVisibleSales(sales: SoldDevice[], currentUser: AppUser) {
-  if (currentUser.role === "admin") {
+  if (currentUser.role === "gestor") {
     return sales;
   }
 
@@ -127,15 +127,15 @@ export function getGoalProgress(
   const monthSales = sales.filter((sale) => isSameMonth(sale.data, referenceDate));
 
   const target =
-    currentUser.role === "admin"
+    currentUser.role === "gestor"
       ? users
-          .filter((user) => user.role === "seller")
+          .filter((user) => user.role === "vendedor")
           .reduce((sum, user) => sum + user.monthlyGoal, 0)
       : currentUser.monthlyGoal;
 
   const achieved = monthSales
     .filter((sale) =>
-      currentUser.role === "admin" ? true : sale.vendedor_id === currentUser.id,
+      currentUser.role === "gestor" ? true : sale.vendedor_id === currentUser.id,
     )
     .reduce((sum, sale) => sum + getRevenue(sale), 0);
 
@@ -216,7 +216,7 @@ export function buildSellerLeaderboard(sales: SoldDevice[], users: AppUser[]) {
       ({
         id: sale.vendedor_id,
         name: sale.vendedor_nome,
-        role: "seller",
+        role: "vendedor",
         monthlyGoal: 0,
       } as AppUser);
 

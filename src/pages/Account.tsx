@@ -214,13 +214,13 @@ export default function Account() {
                   }).format(currentUser.monthlyGoal)}
                 </p>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  {currentUser.role === "seller"
+                  {currentUser.role === "vendedor"
                     ? "Meta individual visível apenas para você e para a gestão."
                     : "Meta consolidada usada na visão gerencial."}
                 </p>
               </div>
 
-              {currentUser.role === "admin" && (
+              {currentUser.role === "gestor" && (
                 <Button className="w-full" onClick={() => navigate("/conta/criar")}>
                   <UserPlus className="mr-2 h-4 w-4" />
                   Criar novo usuário
@@ -418,12 +418,12 @@ export default function Account() {
               </CardContent>
             </Card>
 
-            {currentUser.role === "admin" && (
+            {currentUser.role === "gestor" && (
               <Card>
                 <CardHeader>
                   <CardTitle>Equipe cadastrada</CardTitle>
                   <CardDescription>
-                    Visão administrativa com matrícula, perfil e meta individual.
+                    Visão gerencial com matrícula, perfil e meta individual.
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="grid gap-3 md:grid-cols-2">
@@ -434,7 +434,7 @@ export default function Account() {
                           <p className="font-medium">{user.name}</p>
                           <p className="text-sm text-muted-foreground">{user.employeeId}</p>
                         </div>
-                        <Badge variant={user.role === "admin" ? "secondary" : "outline"}>
+                        <Badge variant={user.role === "gestor" ? "secondary" : "outline"}>
                           {roleLabels[user.role]}
                         </Badge>
                       </div>

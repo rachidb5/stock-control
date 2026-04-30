@@ -1,5 +1,6 @@
 import api from "./api";
 import { requestData } from "./serviceUtils";
+import type { UserAccessLevel } from "./userService";
 
 /* =======================
  * Interfaces
@@ -13,6 +14,7 @@ export interface LoginPayload {
 export interface RegisterPayload {
   username: string;
   email: string;
+  phone: string;
   password: string;
 }
 
@@ -20,6 +22,7 @@ export interface AuthUser {
   id: string;
   username: string;
   email: string;
+  role: UserAccessLevel;
 }
 
 export interface AuthResponse {
@@ -40,9 +43,9 @@ export const authService = {
     );
   },
 
-  register: async (data: RegisterPayload): Promise<AuthUser> => {
+  register: async (data: RegisterPayload): Promise<AuthResponse> => {
     return requestData(
-      api.post<AuthUser>("/auth/register", data),
+      api.post<AuthResponse>("/auth/register", data),
       "Não foi possível criar o usuário.",
     );
   },

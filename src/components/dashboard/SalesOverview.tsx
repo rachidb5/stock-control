@@ -98,7 +98,7 @@ export function SalesOverview({
   const topProduct = getTopProduct(visibleSales);
 
   const bestSeller = leaderboard[0];
-  const adminView = currentUser.role === "admin";
+  const adminView = currentUser.role === "gestor";
   const headline =
     adminView
       ? "Visão consolidada da operação comercial"
@@ -363,7 +363,7 @@ export function SalesOverview({
                           {formatCurrency(seller.averageTicket)}
                         </p>
                       </div>
-                      <Badge variant={seller.role === "admin" ? "secondary" : "outline"}>
+                      <Badge variant={seller.role === "gestor" ? "secondary" : "outline"}>
                         {roleLabels[seller.role]}
                       </Badge>
                     </div>
