@@ -38,6 +38,10 @@ export const sellService = {
     page?: number;
     limit?: number;
     search?: string;
+    status?: "completed" | "pending";
+    condition?: string;
+    startDate?: string;
+    endDate?: string;
   }): Promise<SoldDeviceResponse> => {
     return requestData(
       api.get<SoldDeviceResponse>("/sold-devices", { params }),

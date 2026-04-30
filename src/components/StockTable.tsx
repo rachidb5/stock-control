@@ -88,12 +88,24 @@ export const StockTable = ({
   const currentPage = page ?? pagination.page;
 
   const stockQuery = useQuery({
-    queryKey: ["stock", currentPage, pagination.limit, searchTerm],
+    queryKey: [
+      "stock",
+      currentPage,
+      pagination.limit,
+      searchTerm,
+      observationFilter,
+      supplierFilter,
+    ],
     queryFn: () =>
       stockService.getStock({
         page: currentPage,
         limit: pagination.limit,
         search: searchTerm || undefined,
+        observation:
+          observationFilter === "all"
+            ? undefined
+            : (observationFilter as "with" | "without"),
+        supplier: supplierFilter === "all" ? undefined : supplierFilter,
       }),
     placeholderData: keepPreviousData,
     staleTime: 5 * 60 * 1000,
@@ -135,15 +147,7 @@ export const StockTable = ({
   const suppliers = Array.from(new Set(devices.map(d => d.fornecedor)));
 
   const filteredDevices = devices.filter((device) => {
-    const matchesObservation =
-      observationFilter === "all" ||
-      (observationFilter === "with" && device.observacao) ||
-      (observationFilter === "without" && !device.observacao);
-
-    const matchesSupplier =
-      supplierFilter === "all" || device.fornecedor === supplierFilter;
-
-    return matchesObservation && matchesSupplier;
+    return supplierFilter === "all" || device.fornecedor === supplierFilter;
   });
 
   const formatCurrency = (value: number | null) => {
@@ -338,7 +342,10 @@ export const StockTable = ({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <Select 
               value={supplierFilter} 
-              onValueChange={setSupplierFilter}
+              onValueChange={(value) => {
+                setSupplierFilter(value);
+                handlePageChange(1);
+              }}
               disabled={loading}
             >
               <SelectTrigger>
@@ -355,7 +362,10 @@ export const StockTable = ({
             </Select>
             <Select 
               value={observationFilter} 
-              onValueChange={setLocalObservationFilter}
+              onValueChange={(value) => {
+                setLocalObservationFilter(value);
+                handlePageChange(1);
+              }}
               disabled={loading}
             >
               <SelectTrigger>

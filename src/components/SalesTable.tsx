@@ -96,12 +96,28 @@ export function SalesTable({
   const currentPage = page ?? pagination.page;
 
   const salesQuery = useQuery({
-    queryKey: ["sold-devices", currentPage, pagination.limit, searchTerm],
+    queryKey: [
+      "sold-devices",
+      currentPage,
+      pagination.limit,
+      searchTerm,
+      statusFilter,
+      conditionFilter,
+      startDate,
+      endDate,
+    ],
     queryFn: () =>
       sellService.getSales({
         page: currentPage,
         limit: pagination.limit,
         search: searchTerm || undefined,
+        status:
+          statusFilter === "all"
+            ? undefined
+            : (statusFilter as "completed" | "pending"),
+        condition: conditionFilter === "all" ? undefined : conditionFilter,
+        startDate: startDate || undefined,
+        endDate: endDate || undefined,
       }),
     enabled: useApi,
     placeholderData: keepPreviousData,
@@ -236,6 +252,13 @@ export function SalesTable({
     }
 
     setPagination((prev) => ({ ...prev, page }));
+  };
+
+  const updateLocalFilter = (setter: (value: string) => void, value: string) => {
+    setter(value);
+    if (useApi) {
+      handlePageChange(1);
+    }
   };
 
   const handleDelete = async (id: string | number) => {
@@ -407,15 +430,24 @@ export function SalesTable({
               type="date"
               placeholder="Data inicial"
               value={startDate}
-              onChange={(event) => setLocalStartDate(event.target.value)}
+              onChange={(event) =>
+                updateLocalFilter(setLocalStartDate, event.target.value)
+              }
             />
             <Input
               type="date"
               placeholder="Data final"
               value={endDate}
-              onChange={(event) => setLocalEndDate(event.target.value)}
+              onChange={(event) =>
+                updateLocalFilter(setLocalEndDate, event.target.value)
+              }
             />
-            <Select value={statusFilter} onValueChange={setLocalStatusFilter}>
+            <Select
+              value={statusFilter}
+              onValueChange={(value) =>
+                updateLocalFilter(setLocalStatusFilter, value)
+              }
+            >
               <SelectTrigger>
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
@@ -425,7 +457,12 @@ export function SalesTable({
                 <SelectItem value="pending">Pendente</SelectItem>
               </SelectContent>
             </Select>
-            <Select value={conditionFilter} onValueChange={setLocalConditionFilter}>
+            <Select
+              value={conditionFilter}
+              onValueChange={(value) =>
+                updateLocalFilter(setLocalConditionFilter, value)
+              }
+            >
               <SelectTrigger>
                 <SelectValue placeholder="Condição" />
               </SelectTrigger>

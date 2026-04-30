@@ -21,6 +21,7 @@ export interface StockResponse {
   total: number;
   page: number;
   limit: number;
+  totalPages: number;
 }
 
 export const stockService = {
@@ -28,6 +29,8 @@ export const stockService = {
     page?: number;
     limit?: number;
     search?: string;
+    observation?: "with" | "without";
+    supplier?: string;
   }): Promise<StockResponse> => {
     return requestData(
       api.get<StockResponse>("/stock", { params }),
