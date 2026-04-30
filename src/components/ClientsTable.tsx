@@ -1,4 +1,5 @@
-import { useMemo, useState } from "react";
+import { useEffect, useState } from "react";
+import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Card,
   CardContent,
@@ -28,8 +29,11 @@ import {
 } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import { masks, validators } from "@/hooks/use-masks";
-import { Client } from "@/data/mockData";
-import { ClientInput, useClientStore } from "@/stores/useClientStore";
+import clientService, {
+  Client,
+  ClientInput,
+  ClientResponse,
+} from "@/services/clientService";
 import {
   Edit,
   Mail,
@@ -70,28 +74,47 @@ const emptyClientForm: ClientFormData = {
 
 export function ClientsTable() {
   const { toast } = useToast();
-  const clients = useClientStore((state) => state.clients);
-  const addClient = useClientStore((state) => state.addClient);
-  const updateClient = useClientStore((state) => state.updateClient);
-  const deleteClient = useClientStore((state) => state.deleteClient);
-
+  const queryClient = useQueryClient();
+  const [draftSearchTerm, setDraftSearchTerm] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: 20,
+  });
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingClient, setEditingClient] = useState<Client | null>(null);
   const [formData, setFormData] = useState<ClientFormData>(emptyClientForm);
   const [errors, setErrors] = useState<ClientFormErrors>({});
 
-  const filteredClients = useMemo(
-    () =>
-      clients.filter(
-        (client) =>
-          client.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          client.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          client.telefone.includes(searchTerm) ||
-          client.cpf.includes(searchTerm),
-      ),
-    [clients, searchTerm],
-  );
+  const clientsQuery = useQuery({
+    queryKey: ["clients", pagination.page, pagination.limit, searchTerm],
+    queryFn: () =>
+      clientService.getClients({
+        page: pagination.page,
+        limit: pagination.limit,
+        search: searchTerm || undefined,
+      }),
+    placeholderData: keepPreviousData,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const response = clientsQuery.data as ClientResponse | undefined;
+  const clients = response?.data ?? [];
+  const total = response?.total ?? 0;
+  const loading = clientsQuery.isLoading;
+
+  useEffect(() => {
+    if (clientsQuery.isError) {
+      toast({
+        title: "Erro ao carregar clientes",
+        description:
+          clientsQuery.error instanceof Error
+            ? clientsQuery.error.message
+            : "Tente novamente em instantes.",
+        variant: "destructive",
+      });
+    }
+  }, [clientsQuery.error, clientsQuery.isError, toast]);
 
   const totalPurchases = clients.reduce((sum, client) => sum + client.total_compras, 0);
 
@@ -134,6 +157,11 @@ export function ClientsTable() {
     setIsDialogOpen(true);
   };
 
+  const applySearch = () => {
+    setSearchTerm(draftSearchTerm);
+    setPagination((current) => ({ ...current, page: 1 }));
+  };
+
   const validateForm = () => {
     const nextErrors: ClientFormErrors = {};
 
@@ -169,7 +197,7 @@ export function ClientsTable() {
     return Object.keys(nextErrors).length === 0;
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!validateForm()) {
       toast({
         title: "Revise o formulário",
@@ -192,33 +220,53 @@ export function ClientsTable() {
       total_compras: Number(formData.total_compras || 0),
     };
 
-    if (editingClient) {
-      updateClient(editingClient.id, payload);
+    try {
+      if (editingClient) {
+        await clientService.updateClient(editingClient.id, payload);
+        toast({
+          title: "Cliente atualizado",
+          description: `${payload.nome} foi atualizado com sucesso.`,
+        });
+      } else {
+        await clientService.createClient(payload);
+        toast({
+          title: "Cliente criado",
+          description: `${payload.nome} foi adicionado à base.`,
+        });
+      }
+
+      queryClient.invalidateQueries({ queryKey: ["clients"] });
+      setIsDialogOpen(false);
+    } catch (error) {
       toast({
-        title: "Cliente atualizado",
-        description: `${payload.nome} foi atualizado com sucesso.`,
-      });
-    } else {
-      addClient(payload);
-      toast({
-        title: "Cliente criado",
-        description: `${payload.nome} foi adicionado à base.`,
+        title: "Erro ao salvar cliente",
+        description:
+          error instanceof Error ? error.message : "Tente novamente em instantes.",
+        variant: "destructive",
       });
     }
-
-    setIsDialogOpen(false);
   };
 
-  const handleDelete = (client: Client) => {
+  const handleDelete = async (client: Client) => {
     if (!window.confirm(`Deseja remover ${client.nome} da base de clientes?`)) {
       return;
     }
 
-    deleteClient(client.id);
-    toast({
-      title: "Cliente removido",
-      description: `${client.nome} foi excluído com sucesso.`,
-    });
+    try {
+      await clientService.deleteClient(client.id);
+      queryClient.invalidateQueries({ queryKey: ["clients"] });
+      toast({
+        title: "Cliente removido",
+        description: `${client.nome} foi excluído com sucesso.`,
+      });
+    } catch (error) {
+      toast({
+        title: "Erro ao remover cliente",
+        description:
+          error instanceof Error ? error.message : "Tente novamente em instantes.",
+        variant: "destructive",
+      });
+    }
   };
 
   const formatCPF = (cpf: string) =>
@@ -246,7 +294,7 @@ export function ClientsTable() {
         <Card>
           <CardHeader className="pb-3">
             <CardDescription>Total de clientes</CardDescription>
-            <CardTitle className="text-3xl">{clients.length}</CardTitle>
+            <CardTitle className="text-3xl">{total}</CardTitle>
           </CardHeader>
         </Card>
         <Card>
@@ -258,7 +306,7 @@ export function ClientsTable() {
         <Card>
           <CardHeader className="pb-3">
             <CardDescription>Base filtrada</CardDescription>
-            <CardTitle className="text-3xl">{filteredClients.length}</CardTitle>
+            <CardTitle className="text-3xl">{clients.length}</CardTitle>
           </CardHeader>
         </Card>
       </div>
@@ -275,14 +323,25 @@ export function ClientsTable() {
                 Busque, edite e remova clientes diretamente desta página.
               </CardDescription>
             </div>
-            <div className="relative w-full md:w-[280px]">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Buscar por nome, email, telefone ou CPF..."
-                value={searchTerm}
-                onChange={(event) => setSearchTerm(event.target.value)}
-                className="pl-8"
-              />
+            <div className="flex w-full flex-col gap-2 md:w-auto md:flex-row">
+              <div className="relative w-full md:w-[320px]">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar por nome, email, telefone ou CPF..."
+                  value={draftSearchTerm}
+                  onChange={(event) => setDraftSearchTerm(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") {
+                      applySearch();
+                    }
+                  }}
+                  className="pl-8"
+                />
+              </div>
+              <Button type="button" onClick={applySearch} disabled={loading}>
+                <Search className="mr-2 h-4 w-4" />
+                Buscar
+              </Button>
             </div>
           </div>
         </CardHeader>
@@ -300,14 +359,16 @@ export function ClientsTable() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredClients.length === 0 ? (
+                {clients.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={6} className="py-8 text-center text-muted-foreground">
-                      Nenhum cliente encontrado com os filtros atuais.
+                      {loading
+                        ? "Carregando clientes..."
+                        : "Nenhum cliente encontrado com os filtros atuais."}
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredClients.map((client) => (
+                  clients.map((client) => (
                     <TableRow key={client.id}>
                       <TableCell className="font-medium">{client.nome}</TableCell>
                       <TableCell>{formatCPF(client.cpf)}</TableCell>
@@ -348,6 +409,45 @@ export function ClientsTable() {
               </TableBody>
             </Table>
           </div>
+          {total > pagination.limit && (
+            <div className="mt-4 flex flex-col items-center justify-between gap-4 sm:flex-row">
+              <div className="text-sm text-muted-foreground">
+                Mostrando {(pagination.page - 1) * pagination.limit + 1} a{" "}
+                {Math.min(pagination.page * pagination.limit, total)} de {total} clientes
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() =>
+                    setPagination((current) => ({
+                      ...current,
+                      page: current.page - 1,
+                    }))
+                  }
+                  disabled={pagination.page === 1 || loading}
+                >
+                  Anterior
+                </Button>
+                <span className="flex items-center px-3 text-sm">
+                  Página {pagination.page}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() =>
+                    setPagination((current) => ({
+                      ...current,
+                      page: current.page + 1,
+                    }))
+                  }
+                  disabled={pagination.page * pagination.limit >= total || loading}
+                >
+                  Próxima
+                </Button>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 
