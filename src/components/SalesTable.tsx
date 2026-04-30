@@ -76,11 +76,17 @@ export function SalesTable({
   page,
   onPageChange,
 }: SalesTableProps) {
+  const [draftSearchTerm, setDraftSearchTerm] = useState("");
   const [localSearchTerm, setLocalSearchTerm] = useState("");
+  const [draftStatusFilter, setDraftStatusFilter] = useState<string>("all");
   const [localStatusFilter, setLocalStatusFilter] = useState<string>("all");
+  const [draftConditionFilter, setDraftConditionFilter] = useState<string>("all");
   const [localConditionFilter, setLocalConditionFilter] = useState<string>("all");
+  const [draftSellerFilter, setDraftSellerFilter] = useState<string>("all");
   const [sellerFilter, setSellerFilter] = useState<string>("all");
+  const [draftStartDate, setDraftStartDate] = useState("");
   const [localStartDate, setLocalStartDate] = useState("");
+  const [draftEndDate, setDraftEndDate] = useState("");
   const [localEndDate, setLocalEndDate] = useState("");
   const [pagination, setPagination] = useState({
     page: 1,
@@ -238,13 +244,6 @@ export function SalesTable({
     return toNumber(device.valor_total_venda) - toNumber(device.valor_compra);
   };
 
-  const handleSearch = (value: string) => {
-    setLocalSearchTerm(value);
-    if (useApi) {
-      handlePageChange(1);
-    }
-  };
-
   const handlePageChange = (page: number) => {
     if (onPageChange) {
       onPageChange(page);
@@ -254,11 +253,14 @@ export function SalesTable({
     setPagination((prev) => ({ ...prev, page }));
   };
 
-  const updateLocalFilter = (setter: (value: string) => void, value: string) => {
-    setter(value);
-    if (useApi) {
-      handlePageChange(1);
-    }
+  const applyFilters = () => {
+    setLocalSearchTerm(draftSearchTerm);
+    setLocalStatusFilter(draftStatusFilter);
+    setLocalConditionFilter(draftConditionFilter);
+    setSellerFilter(draftSellerFilter);
+    setLocalStartDate(draftStartDate);
+    setLocalEndDate(draftEndDate);
+    handlePageChange(1);
   };
 
   const handleDelete = async (id: string | number) => {
@@ -419,8 +421,13 @@ export function SalesTable({
             <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Buscar por aparelho, comprador ou IMEI..."
-              value={searchTerm}
-              onChange={(event) => handleSearch(event.target.value)}
+              value={draftSearchTerm}
+              onChange={(event) => setDraftSearchTerm(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") {
+                  applyFilters();
+                }
+              }}
               className="pl-8"
               disabled={loading}
             />
@@ -429,24 +436,18 @@ export function SalesTable({
             <Input
               type="date"
               placeholder="Data inicial"
-              value={startDate}
-              onChange={(event) =>
-                updateLocalFilter(setLocalStartDate, event.target.value)
-              }
+              value={draftStartDate}
+              onChange={(event) => setDraftStartDate(event.target.value)}
             />
             <Input
               type="date"
               placeholder="Data final"
-              value={endDate}
-              onChange={(event) =>
-                updateLocalFilter(setLocalEndDate, event.target.value)
-              }
+              value={draftEndDate}
+              onChange={(event) => setDraftEndDate(event.target.value)}
             />
             <Select
-              value={statusFilter}
-              onValueChange={(value) =>
-                updateLocalFilter(setLocalStatusFilter, value)
-              }
+              value={draftStatusFilter}
+              onValueChange={setDraftStatusFilter}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Status" />
@@ -458,10 +459,8 @@ export function SalesTable({
               </SelectContent>
             </Select>
             <Select
-              value={conditionFilter}
-              onValueChange={(value) =>
-                updateLocalFilter(setLocalConditionFilter, value)
-              }
+              value={draftConditionFilter}
+              onValueChange={setDraftConditionFilter}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Condição" />
@@ -475,7 +474,7 @@ export function SalesTable({
               </SelectContent>
             </Select>
             {showSeller && (
-              <Select value={sellerFilter} onValueChange={setSellerFilter}>
+              <Select value={draftSellerFilter} onValueChange={setDraftSellerFilter}>
                 <SelectTrigger>
                   <SelectValue placeholder="Vendedor" />
                 </SelectTrigger>
@@ -489,6 +488,12 @@ export function SalesTable({
                 </SelectContent>
               </Select>
             )}
+          </div>
+          <div className="flex justify-end">
+            <Button type="button" onClick={applyFilters} disabled={loading}>
+              <Search className="mr-2 h-4 w-4" />
+              Buscar
+            </Button>
           </div>
         </div>}
       </CardHeader>

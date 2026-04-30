@@ -74,8 +74,11 @@ export const StockTable = ({
   onPageChange,
   onStatsUpdate,
 }: StockTableProps) => {
+  const [draftSearchTerm, setDraftSearchTerm] = useState(initialSearch);
   const [localSearchTerm, setLocalSearchTerm] = useState(initialSearch);
+  const [draftObservationFilter, setDraftObservationFilter] = useState<string>("all");
   const [localObservationFilter, setLocalObservationFilter] = useState<string>("all");
+  const [draftSupplierFilter, setDraftSupplierFilter] = useState<string>("all");
   const [supplierFilter, setSupplierFilter] = useState<string>("all");
   const [pagination, setPagination] = useState({
     page: 1,
@@ -146,9 +149,7 @@ export const StockTable = ({
 
   const suppliers = Array.from(new Set(devices.map(d => d.fornecedor)));
 
-  const filteredDevices = devices.filter((device) => {
-    return supplierFilter === "all" || device.fornecedor === supplierFilter;
-  });
+  const filteredDevices = devices;
 
   const formatCurrency = (value: number | null) => {
     if (value === null || value === undefined) return "-";
@@ -261,8 +262,10 @@ export const StockTable = ({
     setPagination(prev => ({ ...prev, page: newPage }));
   };
 
-  const handleSearch = (value: string) => {
-    setLocalSearchTerm(value);
+  const applyFilters = () => {
+    setLocalSearchTerm(draftSearchTerm);
+    setLocalObservationFilter(draftObservationFilter);
+    setSupplierFilter(draftSupplierFilter);
     handlePageChange(1);
   };
 
@@ -333,19 +336,21 @@ export const StockTable = ({
             <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Buscar por modelo, cor, IMEI..."
-              value={searchTerm}
-              onChange={(e) => handleSearch(e.target.value)}
+              value={draftSearchTerm}
+              onChange={(e) => setDraftSearchTerm(e.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") {
+                  applyFilters();
+                }
+              }}
               className="pl-8"
               disabled={loading}
             />
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             <Select 
-              value={supplierFilter} 
-              onValueChange={(value) => {
-                setSupplierFilter(value);
-                handlePageChange(1);
-              }}
+              value={draftSupplierFilter} 
+              onValueChange={setDraftSupplierFilter}
               disabled={loading}
             >
               <SelectTrigger>
@@ -361,11 +366,8 @@ export const StockTable = ({
               </SelectContent>
             </Select>
             <Select 
-              value={observationFilter} 
-              onValueChange={(value) => {
-                setLocalObservationFilter(value);
-                handlePageChange(1);
-              }}
+              value={draftObservationFilter} 
+              onValueChange={setDraftObservationFilter}
               disabled={loading}
             >
               <SelectTrigger>
@@ -377,6 +379,10 @@ export const StockTable = ({
                 <SelectItem value="without">Sem Observação</SelectItem>
               </SelectContent>
             </Select>
+            <Button type="button" onClick={applyFilters} disabled={loading}>
+              <Search className="mr-2 h-4 w-4" />
+              Buscar
+            </Button>
           </div>
         </div>}
       </CardHeader>

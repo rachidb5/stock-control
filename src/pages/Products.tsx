@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Layout } from "@/components/Layout";
 import { SalesTable } from "@/components/SalesTable";
@@ -31,6 +31,25 @@ export default function Products() {
   const startDate = searchParams.get("inicio") ?? "";
   const endDate = searchParams.get("fim") ?? "";
   const page = Math.max(Number(searchParams.get("pagina") ?? 1) || 1, 1);
+  const [draftFilters, setDraftFilters] = useState({
+    search,
+    observation,
+    status,
+    condition,
+    startDate,
+    endDate,
+  });
+
+  useEffect(() => {
+    setDraftFilters({
+      search,
+      observation,
+      status,
+      condition,
+      startDate,
+      endDate,
+    });
+  }, [search, observation, status, condition, startDate, endDate]);
 
   const handleTabChange = (tab: string) => {
     const next = new URLSearchParams(searchParams);
@@ -39,16 +58,36 @@ export default function Products() {
     setSearchParams(next);
   };
 
-  const updateFilter = (key: string, value: string) => {
+  const updateDraftFilter = (key: keyof typeof draftFilters, value: string) => {
+    setDraftFilters((current) => ({ ...current, [key]: value }));
+  };
+
+  const applyFilters = () => {
     const next = new URLSearchParams(searchParams);
     next.set("tab", activeTab);
     next.delete("pagina");
 
-    if (!value || value === "all") {
-      next.delete(key);
-    } else {
-      next.set(key, value);
-    }
+    const filters =
+      activeTab === "estoque"
+        ? {
+            busca: draftFilters.search,
+            observacao: draftFilters.observation,
+          }
+        : {
+            busca: draftFilters.search,
+            inicio: draftFilters.startDate,
+            fim: draftFilters.endDate,
+            status: draftFilters.status,
+            condicao: draftFilters.condition,
+          };
+
+    Object.entries(filters).forEach(([key, value]) => {
+      if (!value || value === "all") {
+        next.delete(key);
+      } else {
+        next.set(key, value);
+      }
+    });
 
     setSearchParams(next);
   };
@@ -89,8 +128,13 @@ export default function Products() {
           <div className="relative md:col-span-2">
             <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
-              value={search}
-              onChange={(event) => updateFilter("busca", event.target.value)}
+              value={draftFilters.search}
+              onChange={(event) => updateDraftFilter("search", event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") {
+                  applyFilters();
+                }
+              }}
               placeholder={
                 activeTab === "vendas"
                   ? "Buscar por aparelho, comprador ou IMEI..."
@@ -102,8 +146,8 @@ export default function Products() {
 
           {activeTab === "estoque" ? (
             <Select
-              value={observation}
-              onValueChange={(value) => updateFilter("observacao", value)}
+              value={draftFilters.observation}
+              onValueChange={(value) => updateDraftFilter("observation", value)}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Observação" />
@@ -118,17 +162,17 @@ export default function Products() {
             <>
               <Input
                 type="date"
-                value={startDate}
-                onChange={(event) => updateFilter("inicio", event.target.value)}
+                value={draftFilters.startDate}
+                onChange={(event) => updateDraftFilter("startDate", event.target.value)}
               />
               <Input
                 type="date"
-                value={endDate}
-                onChange={(event) => updateFilter("fim", event.target.value)}
+                value={draftFilters.endDate}
+                onChange={(event) => updateDraftFilter("endDate", event.target.value)}
               />
               <Select
-                value={status}
-                onValueChange={(value) => updateFilter("status", value)}
+                value={draftFilters.status}
+                onValueChange={(value) => updateDraftFilter("status", value)}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Status" />
@@ -140,8 +184,8 @@ export default function Products() {
                 </SelectContent>
               </Select>
               <Select
-                value={condition}
-                onValueChange={(value) => updateFilter("condicao", value)}
+                value={draftFilters.condition}
+                onValueChange={(value) => updateDraftFilter("condition", value)}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Condição" />
@@ -157,11 +201,15 @@ export default function Products() {
             </>
           )}
 
+          <Button type="button" onClick={applyFilters}>
+            <Search className="mr-2 h-4 w-4" />
+            Buscar
+          </Button>
+
           <Button
             type="button"
             variant="outline"
             onClick={clearFilters}
-            className="lg:col-start-5"
           >
             <X className="mr-2 h-4 w-4" />
             Limpar filtros
