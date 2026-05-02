@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
+import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/SideBar";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Button } from "@/components/ui/button";
@@ -81,11 +81,17 @@ export function Layout({ children }: LayoutProps) {
 
   return (
     <SidebarProvider>
-      <div className="flex min-h-screen w-full">
+      <div className="flex min-h-screen w-full min-w-0">
         <AppSidebar />
-        <SidebarInset>
-          <header className="border-b bg-card/95 shadow-sm backdrop-blur">
-            <div className="container mx-auto px-4 py-3">
+        <SidebarInset className="min-w-0">
+          <header className="sticky top-0 z-30 border-b bg-background/90 shadow-sm backdrop-blur-xl">
+            <div className="mx-auto w-full max-w-[1500px] px-3 py-3 sm:px-4">
+              <div className="mb-3 flex items-center justify-between md:hidden">
+                <SidebarTrigger className="h-10 w-10 rounded-xl border border-border/70 bg-background shadow-sm" />
+                <div className="rounded-xl border border-border/70 bg-background shadow-sm">
+                  <ThemeToggle className="h-10 w-10" />
+                </div>
+              </div>
               <div className="grid gap-2 lg:grid-cols-[minmax(0,18rem)_minmax(0,19rem)_auto] lg:items-center">
                 <div className="min-w-0">
                   <HeaderUserCard user={currentUser} initials={initials} />
@@ -100,24 +106,26 @@ export function Layout({ children }: LayoutProps) {
                   />
                 </div>
 
-                <div className="flex items-center justify-end gap-2">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={() => navigate("/conta")}
-                    className="h-10 rounded-xl border-border/70 bg-background px-3 text-xs whitespace-nowrap shadow-sm"
+                    className="h-10 w-full rounded-xl border-border/70 bg-background px-3 text-xs whitespace-nowrap shadow-sm sm:w-auto"
                   >
                     <User className="mr-2 h-4 w-4" />
                     Minha conta
                   </Button>
-                  <div className="rounded-xl border border-border/70 bg-background shadow-sm">
+                  <div className="hidden rounded-xl border border-border/70 bg-background shadow-sm md:block">
                     <ThemeToggle className="h-10 w-10" />
                   </div>
                 </div>
               </div>
             </div>
           </header>
-          <main className="flex-1 p-4 md:p-6">{children}</main>
+          <main className="mx-auto min-w-0 w-full max-w-[1500px] flex-1 overflow-x-hidden p-3 sm:p-4 md:p-6">
+            {children}
+          </main>
         </SidebarInset>
       </div>
     </SidebarProvider>

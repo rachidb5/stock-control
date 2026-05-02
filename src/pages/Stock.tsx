@@ -37,19 +37,19 @@ const Stock = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Estoque</h1>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0">
+          <h1 className="text-2xl font-bold sm:text-3xl">Estoque</h1>
           <p className="text-muted-foreground">
             Gerencie todos os aparelhos em estoque
           </p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={handleRefresh}>
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <Button variant="outline" onClick={handleRefresh} className="w-full sm:w-auto">
             <RefreshCw className="mr-2 h-4 w-4" />
             Atualizar
           </Button>
-          <Button onClick={() => navigate('/produto/add')}>
+          <Button onClick={() => navigate('/produto/add')} className="w-full sm:w-auto">
             <Package className="mr-2 h-4 w-4" />
             Adicionar Estoque
           </Button>

@@ -17,18 +17,18 @@ export function HeaderTimeClockCard({
   onToggle,
 }: HeaderTimeClockCardProps) {
   return (
-    <Card className="rounded-2xl border-border/60 bg-background/95 shadow-sm lg:h-16">
+    <Card className="rounded-xl border-border/60 bg-card/95 shadow-none lg:h-16">
       <CardContent className="flex flex-col gap-2.5 p-3 sm:flex-row sm:items-center sm:justify-between lg:h-full">
         <div className="min-w-0">
           <div className="flex min-w-0 flex-wrap items-center gap-2">
-            <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+            <span className="text-[11px] font-semibold uppercase text-muted-foreground">
               Ponto
             </span>
             <span
               className={cn(
                 "inline-flex whitespace-nowrap rounded-full px-2 py-0.5 text-[11px] font-medium",
                 isOpen
-                  ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                  ? "bg-success/10 text-success"
                   : "bg-secondary text-muted-foreground",
               )}
             >
@@ -46,7 +46,7 @@ export function HeaderTimeClockCard({
               className={cn(
                 "rounded-lg p-1.5",
                 isOpen
-                  ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                  ? "bg-success/10 text-success"
                   : "bg-primary/10 text-primary",
               )}
             >

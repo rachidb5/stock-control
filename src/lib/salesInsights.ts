@@ -1,4 +1,4 @@
-import { SoldDevice } from "@/data/mockData";
+import type { SoldDevice } from "@/services/sellService";
 import { AppUser } from "@/stores/useSessionStore";
 
 export interface SalesMetrics {
@@ -55,11 +55,11 @@ export function formatPercent(value: number) {
 }
 
 function getRevenue(sale: SoldDevice) {
-  return sale.valor_total_venda ?? 0;
+  return Number(sale.valor_total_venda ?? 0);
 }
 
 function getCost(sale: SoldDevice) {
-  return sale.valor_compra ?? 0;
+  return Number(sale.valor_compra ?? 0);
 }
 
 function getProfit(sale: SoldDevice) {
@@ -67,21 +67,21 @@ function getProfit(sale: SoldDevice) {
 }
 
 function getMonthKey(dateString: string) {
-  const date = new Date(dateString);
-  return `${date.getFullYear()}-${String(date.getMonth()).padStart(2, "0")}`;
+  const date = new Date(`${dateString.split("T")[0]}T00:00:00`);
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
 }
 
 function getMonthLabel(dateString: string) {
   return new Intl.DateTimeFormat("pt-BR", {
     month: "short",
   })
-    .format(new Date(dateString))
+    .format(new Date(`${dateString.split("T")[0]}T00:00:00`))
     .replace(".", "")
     .replace(/^\w/, (char) => char.toUpperCase());
 }
 
 function isSameMonth(dateString: string, referenceDate: Date) {
-  const date = new Date(dateString);
+  const date = new Date(`${dateString.split("T")[0]}T00:00:00`);
 
   return (
     date.getFullYear() === referenceDate.getFullYear() &&
@@ -103,7 +103,7 @@ export function getSalesMetrics(sales: SoldDevice[]): SalesMetrics {
   const totalRevenue = completedSales.reduce((sum, sale) => sum + getRevenue(sale), 0);
   const totalProfit = completedSales.reduce((sum, sale) => sum + getProfit(sale), 0);
   const accessoryRevenue = completedSales.reduce(
-    (sum, sale) => sum + (sale.valor_capa_pelicula ?? 0),
+    (sum, sale) => sum + Number(sale.valor_capa_pelicula ?? 0),
     0,
   );
 
@@ -211,11 +211,12 @@ export function buildSellerLeaderboard(sales: SoldDevice[], users: AppUser[]) {
   const grouped = new Map<string, SellerLeaderboardEntry>();
 
   sales.forEach((sale) => {
+    const sellerId = sale.vendedor_id ?? "sem-vendedor";
     const user =
-      users.find((candidate) => candidate.id === sale.vendedor_id) ??
+      users.find((candidate) => candidate.id === sellerId) ??
       ({
-        id: sale.vendedor_id,
-        name: sale.vendedor_nome,
+        id: sellerId,
+        name: sale.vendedor_nome ?? "Sem vendedor",
         role: "vendedor",
         monthlyGoal: 0,
       } as AppUser);
@@ -254,7 +255,7 @@ export function buildConditionDistribution(sales: SoldDevice[]) {
   const grouped = new Map<string, number>();
 
   sales.forEach((sale) => {
-    const key = sale.condicao;
+    const key = sale.condicao || "Nao informado";
     grouped.set(key, (grouped.get(key) ?? 0) + 1);
   });
 
@@ -265,10 +266,11 @@ export function getTopProduct(sales: SoldDevice[]) {
   const grouped = new Map<string, { revenue: number; sales: number }>();
 
   sales.forEach((sale) => {
-    const current = grouped.get(sale.aparelho) ?? { revenue: 0, sales: 0 };
+    const productName = sale.aparelho || "Nao informado";
+    const current = grouped.get(productName) ?? { revenue: 0, sales: 0 };
     current.revenue += getRevenue(sale);
     current.sales += 1;
-    grouped.set(sale.aparelho, current);
+    grouped.set(productName, current);
   });
 
   const [name, values] =

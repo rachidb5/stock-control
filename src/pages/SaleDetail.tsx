@@ -73,7 +73,7 @@ const SaleDetail = () => {
           </CardHeader>
           <CardContent>
             <Button
-              onClick={() => navigate("/produtos?tab=vendas")}
+              onClick={() => navigate(-1)}
               className="w-full"
             >
               <ArrowLeft className="mr-2 h-4 w-4" />
@@ -93,21 +93,21 @@ const SaleDetail = () => {
         <div className="container mx-auto px-4 py-6">
           <Button
             variant="ghost"
-            onClick={() => navigate("/produtos?tab=vendas")}
-            className="mb-4"
+            onClick={() => navigate(-1)}
+            className="mb-4 w-full justify-start sm:w-auto"
           >
             <ArrowLeft className="mr-2 h-4 w-4" />
             Voltar
           </Button>
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-foreground flex items-center gap-2">
+              <h1 className="flex items-center gap-2 text-2xl font-bold text-foreground sm:text-3xl">
                 <ShoppingCart className="h-8 w-8" />
                 Detalhes da Venda
               </h1>
               <p className="text-muted-foreground mt-1">Informações completas da transação</p>
             </div>
-            <Button onClick={() => navigate(`/sale/edit/${device.id}`)}>
+            <Button onClick={() => navigate(`/sale/edit/${device.id}`)} className="w-full sm:w-auto">
               <Edit className="mr-2 h-4 w-4" />
               Editar
             </Button>
@@ -115,9 +115,9 @@ const SaleDetail = () => {
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-8">
+      <main className="container mx-auto px-4 py-6 sm:py-8">
         <div className="grid gap-6">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <Badge variant={device.aparelho_recebido ? "default" : "secondary"} className="text-base px-4 py-2">
               {device.aparelho_recebido ? (
                 <>
@@ -271,15 +271,16 @@ const SaleDetail = () => {
           )}
         </div>
 
-        <div className="mt-6 flex gap-4">
-          <Button onClick={() => navigate(`/sale/edit/${device.id}`)} size="lg">
+        <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+          <Button onClick={() => navigate(`/sale/edit/${device.id}`)} size="lg" className="w-full sm:w-auto">
             <Edit className="mr-2 h-4 w-4" />
             Editar Venda
           </Button>
           <Button
             variant="outline"
-            onClick={() => navigate(localSale ? "/painel-comercial" : "/")}
+            onClick={() => navigate(-1)}
             size="lg"
+            className="w-full sm:w-auto"
           >
             Voltar para Vendas
           </Button>

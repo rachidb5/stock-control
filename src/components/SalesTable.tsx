@@ -367,10 +367,10 @@ export function SalesTable({
   };
 
   return (
-    <Card className="shadow-md">
+    <Card className="min-w-0 shadow-md">
       <CardHeader>
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-          <div>
+          <div className="min-w-0">
             <CardTitle>
               {showSeller ? "Vendas da operação" : "Minhas vendas"}
             </CardTitle>
@@ -380,7 +380,7 @@ export function SalesTable({
                 : "Acompanhe seu histórico, filtre negociações e exporte relatórios."}
             </CardDescription>
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto sm:flex-wrap">
             {useApi && (
               <Button
                 onClick={fetchSales}
@@ -490,7 +490,7 @@ export function SalesTable({
             )}
           </div>
           <div className="flex justify-end">
-            <Button type="button" onClick={applyFilters} disabled={loading}>
+            <Button type="button" onClick={applyFilters} disabled={loading} className="w-full sm:w-auto">
               <Search className="mr-2 h-4 w-4" />
               Buscar
             </Button>
@@ -541,7 +541,7 @@ export function SalesTable({
                           </TableCell>
                           <TableCell>
                             <div>
-                              <div className="font-medium">{device.aparelho}</div>
+                              <div className="max-w-[220px] truncate font-medium">{device.aparelho}</div>
                               <div className="text-xs text-muted-foreground">
                                 {device.cor}
                                 {device.canal_venda
@@ -554,7 +554,7 @@ export function SalesTable({
                             <TableCell>
                               <div className="flex items-center gap-2">
                                 <UserRound className="h-4 w-4 text-muted-foreground" />
-                                <span>
+                                <span className="max-w-[160px] truncate">
                                   {device.vendedor_nome ?? "Sem vendedor"}
                                 </span>
                               </div>
@@ -563,7 +563,7 @@ export function SalesTable({
                           <TableCell>{getConditionBadge(device.condicao)}</TableCell>
                           <TableCell>
                             <div>
-                              <div className="font-medium">{device.comprador}</div>
+                              <div className="max-w-[180px] truncate font-medium">{device.comprador}</div>
                               <div className="text-xs text-muted-foreground">
                                 {device.numero_telefone}
                               </div>

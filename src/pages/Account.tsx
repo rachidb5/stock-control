@@ -174,7 +174,7 @@ export default function Account() {
     <Layout>
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Minha Conta</h1>
+          <h1 className="text-2xl font-bold sm:text-3xl">Minha Conta</h1>
           <p className="text-muted-foreground">
             Acompanhe seus dados, sua matrícula e seu histórico de ponto.
           </p>
@@ -188,8 +188,8 @@ export default function Account() {
                   {getInitials(currentUser.name)}
                 </AvatarFallback>
               </Avatar>
-              <CardTitle className="mt-4">{currentUser.name}</CardTitle>
-              <CardDescription>{currentUser.email}</CardDescription>
+              <CardTitle className="mt-4 break-words">{currentUser.name}</CardTitle>
+              <CardDescription className="break-all">{currentUser.email}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="rounded-2xl border border-border/70 bg-secondary/30 p-4">
@@ -244,9 +244,9 @@ export default function Account() {
                   </CardDescription>
                 </div>
                 {!isEditing ? (
-                  <Button onClick={() => setIsEditing(true)}>Editar perfil</Button>
+                  <Button onClick={() => setIsEditing(true)} className="w-full sm:w-auto">Editar perfil</Button>
                 ) : (
-                  <Button onClick={handleSave}>
+                  <Button onClick={handleSave} className="w-full sm:w-auto">
                     <Save className="mr-2 h-4 w-4" />
                     Salvar alterações
                   </Button>

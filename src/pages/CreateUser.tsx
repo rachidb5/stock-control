@@ -193,7 +193,7 @@ export default function CreateUser() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Button onClick={() => navigate("/conta")}>
+            <Button onClick={() => navigate("/conta")} className="w-full sm:w-auto">
               <ArrowLeft className="mr-2 h-4 w-4" />
               Voltar para minha conta
             </Button>
@@ -206,12 +206,12 @@ export default function CreateUser() {
   return (
     <Layout>
       <div className="space-y-6">
-        <div className="flex items-start gap-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
           <Button variant="ghost" size="icon" onClick={() => navigate("/conta")}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Criar Usuário</h1>
+            <h1 className="text-2xl font-bold sm:text-3xl">Criar Usuário</h1>
             <p className="text-muted-foreground">
               Cadastre um novo vendedor ou gestor com matrícula e meta inicial.
             </p>
@@ -390,11 +390,11 @@ export default function CreateUser() {
           </CardContent>
         </Card>
 
-        <div className="flex gap-4">
-          <Button variant="outline" onClick={() => navigate("/conta")} disabled={isLoading}>
+        <div className="flex flex-col gap-3 sm:flex-row">
+          <Button variant="outline" onClick={() => navigate("/conta")} disabled={isLoading} className="w-full sm:w-auto">
             Cancelar
           </Button>
-          <Button onClick={handleSubmit} disabled={isLoading}>
+          <Button onClick={handleSubmit} disabled={isLoading} className="w-full sm:w-auto">
             {isLoading ? "Criando..." : "Criar usuário"}
           </Button>
         </div>

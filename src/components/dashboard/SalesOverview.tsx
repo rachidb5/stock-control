@@ -14,7 +14,7 @@ import {
   getTopProduct,
 } from "@/lib/salesInsights";
 import { AppUser, roleLabels } from "@/stores/useSessionStore";
-import { SoldDevice } from "@/data/mockData";
+import type { SoldDevice } from "@/services/sellService";
 import {
   Area,
   AreaChart,
@@ -111,19 +111,19 @@ export function SalesOverview({
 
   return (
     <div className="space-y-6">
-      <Card className="overflow-hidden border-primary/10 bg-gradient-to-br from-primary/10 via-background to-accent/10 shadow-lg">
-        <CardContent className="grid gap-6 p-6 lg:grid-cols-[1.6fr,1fr] lg:items-center">
+      <Card className="overflow-hidden border-primary/20 bg-card shadow-md">
+        <CardContent className="grid gap-6 p-4 sm:p-6 lg:grid-cols-[1.6fr,1fr] lg:items-center">
           <div className="space-y-4">
-            <Badge variant="secondary" className="w-fit border border-primary/20 bg-background/80">
+            <Badge variant="secondary" className="w-fit border border-primary/20 bg-primary/10 text-primary">
               {roleLabels[currentUser.role]}
             </Badge>
             <div className="space-y-2">
-              <h2 className="text-3xl font-semibold tracking-tight">{headline}</h2>
+              <h2 className="text-2xl font-semibold sm:text-3xl">{headline}</h2>
               <p className="max-w-2xl text-sm text-muted-foreground">{subtitle}</p>
             </div>
             <div className="grid gap-3 sm:grid-cols-3">
               <div className="rounded-2xl border border-border/60 bg-background/90 p-4">
-                <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
+                <p className="text-xs uppercase text-muted-foreground">
                   Receita do mês
                 </p>
                 <p className="mt-2 text-2xl font-semibold">
@@ -139,14 +139,14 @@ export function SalesOverview({
                 </p>
               </div>
               <div className="rounded-2xl border border-border/60 bg-background/90 p-4">
-                <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Meta</p>
+                <p className="text-xs uppercase text-muted-foreground">Meta</p>
                 <p className="mt-2 text-2xl font-semibold">{formatPercent(goalProgress.percent)}</p>
                 <p className="mt-1 text-xs text-muted-foreground">
                   {formatCurrency(goalProgress.achieved)} de {formatCurrency(goalProgress.target)}
                 </p>
               </div>
               <div className="rounded-2xl border border-border/60 bg-background/90 p-4">
-                <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
+                <p className="text-xs uppercase text-muted-foreground">
                   Estoque monitorado
                 </p>
                 <p className="mt-2 text-2xl font-semibold">{stockSummary.total}</p>
@@ -158,7 +158,7 @@ export function SalesOverview({
           </div>
 
           <div className="rounded-3xl border border-border/60 bg-background/90 p-5 shadow-sm">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">
                   {adminView ? "Meta do time" : "Sua meta mensal"}
@@ -168,14 +168,14 @@ export function SalesOverview({
               <Target className="h-9 w-9 text-primary" />
             </div>
             <div className="mt-5 space-y-2">
-              <div className="flex items-center justify-between text-sm">
+              <div className="flex flex-col gap-1 text-sm sm:flex-row sm:items-center sm:justify-between">
                 <span className="text-muted-foreground">
                   {adminView ? "Faturamento acumulado" : "Vendas acumuladas"}
                 </span>
                 <span className="font-medium">{formatCurrency(goalProgress.achieved)}</span>
               </div>
               <Progress value={goalProgress.percent} />
-              <div className="flex items-center justify-between text-xs text-muted-foreground">
+              <div className="flex flex-col gap-1 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
                 <span>{formatPercent(goalProgress.percent)} concluído</span>
                 <span>Faltam {formatCurrency(goalProgress.remaining)}</span>
               </div>
@@ -225,7 +225,7 @@ export function SalesOverview({
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <ChartContainer className="h-[320px] w-full" config={performanceChartConfig}>
+            <ChartContainer className="h-[260px] w-full sm:h-[320px]" config={performanceChartConfig}>
               <AreaChart data={monthlyPerformance}>
                 <defs>
                   <linearGradient id="revenueFill" x1="0" y1="0" x2="0" y2="1">
@@ -327,7 +327,7 @@ export function SalesOverview({
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-5">
-              <ChartContainer className="h-[250px] w-full" config={leaderboardChartConfig}>
+              <ChartContainer className="h-[230px] w-full sm:h-[250px]" config={leaderboardChartConfig}>
                 <BarChart data={leaderboard}>
                   <CartesianGrid vertical={false} />
                   <XAxis dataKey="sellerName" tickLine={false} axisLine={false} />
@@ -353,7 +353,7 @@ export function SalesOverview({
                     key={seller.sellerId}
                     className="rounded-2xl border border-border/70 bg-secondary/30 p-4"
                   >
-                    <div className="flex items-center justify-between gap-3">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                       <div>
                         <p className="font-medium">
                           #{index + 1} {seller.sellerName}
@@ -368,12 +368,12 @@ export function SalesOverview({
                       </Badge>
                     </div>
                     <div className="mt-3 space-y-2">
-                      <div className="flex items-center justify-between text-sm">
+                      <div className="flex flex-col gap-1 text-sm sm:flex-row sm:items-center sm:justify-between">
                         <span className="text-muted-foreground">Receita</span>
                         <span className="font-medium">{formatCurrency(seller.revenue)}</span>
                       </div>
                       <Progress value={seller.progress} />
-                      <div className="flex items-center justify-between text-xs text-muted-foreground">
+                      <div className="flex flex-col gap-1 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
                         <span>{formatPercent(seller.progress)} da meta individual</span>
                         <span>Lucro {formatCurrency(seller.profit)}</span>
                       </div>
@@ -438,7 +438,7 @@ export function SalesOverview({
             <div className="grid gap-5 lg:grid-cols-[1fr,180px] lg:items-center">
               <div className="space-y-3">
                 {conditionDistribution.map((item, index) => (
-                  <div key={item.name} className="flex items-center justify-between rounded-2xl border p-3">
+                  <div key={item.name} className="flex flex-col gap-2 rounded-2xl border p-3 sm:flex-row sm:items-center sm:justify-between">
                     <div className="flex items-center gap-3">
                       <span
                         className="h-3 w-3 rounded-full"

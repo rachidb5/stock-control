@@ -34,6 +34,7 @@ import { useEffect, useState } from "react";
 import sellService from "@/services/sellService";
 import stockService, { StockItem } from "@/services/stockServices";
 import { useClientStore } from "@/stores/useClientStore";
+import { selectCurrentUser, useSessionStore } from "@/stores/useSessionStore";
 import { toast } from "sonner";
 
 const sellSchema = z.object({
@@ -77,6 +78,7 @@ const SellFromStock = () => {
   const [submitting, setSubmitting] = useState(false);
   const [device, setDevice] = useState<StockItem | null>(null);
   const clients = useClientStore((state) => state.clients);
+  const currentUser = useSessionStore(selectCurrentUser);
 
   useEffect(() => {
     if (!id) return;
@@ -179,6 +181,9 @@ const SellFromStock = () => {
         valor_entrega: data.valor_entrega,
         valor_capa_pelicula: data.valor_capa_pelicula,
         valor_total_venda: valorTotalVenda,
+        vendedor_id: currentUser.id,
+        vendedor_nome: currentUser.name,
+        canal_venda: "Estoque",
       });
 
       await stockService.deleteStock(device.id);
@@ -230,7 +235,7 @@ const SellFromStock = () => {
           <p className="text-muted-foreground">
             Dispositivo não encontrado no estoque.
           </p>
-          <Button onClick={() => navigate("/produto")} className="mt-4">
+          <Button onClick={() => navigate(-1)} className="mt-4 w-full sm:w-auto">
             Voltar ao Estoque
           </Button>
         </Card>
@@ -244,13 +249,13 @@ const SellFromStock = () => {
         <div className="container mx-auto px-4 py-6">
           <Button
             variant="ghost"
-            onClick={() => navigate("/produto")}
-            className="mb-4"
+            onClick={() => navigate(-1)}
+            className="mb-4 w-full justify-start sm:w-auto"
           >
             <ArrowLeft className="mr-2 h-4 w-4" />
             Voltar ao Estoque
           </Button>
-          <h1 className="text-3xl font-bold text-foreground">
+          <h1 className="text-2xl font-bold text-foreground sm:text-3xl">
             Registrar Venda
           </h1>
           <p className="text-muted-foreground mt-1">
@@ -259,7 +264,7 @@ const SellFromStock = () => {
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-8">
+      <main className="container mx-auto px-4 py-6 sm:py-8">
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             {/* Device Info */}
@@ -604,7 +609,7 @@ const SellFromStock = () => {
                   />
                 </div>
 
-                <div className="flex items-center justify-between p-4 bg-primary/10 rounded-lg">
+                <div className="flex flex-col gap-2 rounded-lg bg-primary/10 p-4 sm:flex-row sm:items-center sm:justify-between">
                   <span className="font-medium">Valor Total da Venda:</span>
                   <span className="text-2xl font-bold text-primary">
                     R${" "}
@@ -657,8 +662,8 @@ const SellFromStock = () => {
               </CardContent>
             </Card>
 
-            <div className="flex gap-4">
-              <Button type="submit" className="w-full md:w-auto" disabled={submitting}>
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <Button type="submit" className="w-full sm:w-auto" disabled={submitting}>
                 {submitting ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -671,8 +676,8 @@ const SellFromStock = () => {
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => navigate("/produto")}
-                className="w-full md:w-auto"
+                onClick={() => navigate(-1)}
+                className="w-full sm:w-auto"
                 disabled={submitting}
               >
                 Cancelar

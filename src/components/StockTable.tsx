@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, Eye, Edit, FileDown, Upload, FileSpreadsheet, ShoppingCart, Loader2, RefreshCw } from "lucide-react";
+import { Search, Eye, Edit, FileDown, Upload, FileSpreadsheet, ShoppingCart, Loader2, RefreshCw, Trash2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -283,10 +283,10 @@ export const StockTable = ({
   };
 
   return (
-    <Card className="shadow-md">
+    <Card className="min-w-0 shadow-md">
       <CardHeader>
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div>
+          <div className="min-w-0">
             <CardTitle>Estoque Atual</CardTitle>
             <CardDescription>
               {loading ? (
@@ -299,7 +299,7 @@ export const StockTable = ({
               )}
             </CardDescription>
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto sm:flex-wrap">
             <Button 
               onClick={fetchStock} 
               variant="outline" 
@@ -379,7 +379,7 @@ export const StockTable = ({
                 <SelectItem value="without">Sem Observação</SelectItem>
               </SelectContent>
             </Select>
-            <Button type="button" onClick={applyFilters} disabled={loading}>
+            <Button type="button" onClick={applyFilters} disabled={loading} className="w-full">
               <Search className="mr-2 h-4 w-4" />
               Buscar
             </Button>
@@ -420,7 +420,7 @@ export const StockTable = ({
                   ) : (
                     filteredDevices.map((device) => (
                       <TableRow key={device.id || device.imei} className="hover:bg-muted/50">
-                        <TableCell className="font-medium">{device.modelo}</TableCell>
+                        <TableCell className="max-w-[220px] truncate font-medium">{device.modelo}</TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2">
                             {/* <div 
@@ -432,14 +432,14 @@ export const StockTable = ({
                         </TableCell>
                         <TableCell className="font-mono text-sm">{device.imei}</TableCell>
                         <TableCell>{device.capacidade}</TableCell>
-                        <TableCell>{device.fornecedor}</TableCell>
+                        <TableCell className="max-w-[180px] truncate">{device.fornecedor}</TableCell>
                         <TableCell className="font-semibold text-green-600 dark:text-green-400">
                           {formatCurrency(device.valor_unitario)}
                         </TableCell>
                         <TableCell>
                           {device.observacao ? (
                             <Badge variant="outline" className="bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200 border-amber-300">
-                              {device.observacao}
+                              <span className="block max-w-[180px] truncate">{device.observacao}</span>
                             </Badge>
                           ) : (
                             <span className="text-muted-foreground">-</span>
@@ -468,9 +468,9 @@ export const StockTable = ({
                               size="sm"
                               onClick={() => handleDelete(device.id)}
                               title="Excluir"
-                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                              className="text-destructive hover:bg-destructive/10 hover:text-destructive"
                             >
-                              X
+                              <Trash2 className="h-4 w-4" />
                             </Button>
                             <Button
                               variant="default"

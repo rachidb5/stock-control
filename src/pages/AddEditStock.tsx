@@ -143,13 +143,13 @@ const AddEditStock = () => {
         <div className="container mx-auto px-4 py-6">
           <Button
             variant="ghost"
-            onClick={() => navigate("/")}
-            className="mb-4"
+            onClick={() => navigate(-1)}
+            className="mb-4 w-full justify-start sm:w-auto"
           >
             <ArrowLeft className="mr-2 h-4 w-4" />
             Voltar
           </Button>
-          <h1 className="text-3xl font-bold text-foreground">
+          <h1 className="text-2xl font-bold text-foreground sm:text-3xl">
             {isEditing ? "Editar Produto" : "Adicionar ao Estoque"}
           </h1>
           <p className="text-muted-foreground mt-1">
@@ -160,7 +160,7 @@ const AddEditStock = () => {
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-8">
+      <main className="container mx-auto px-4 py-6 sm:py-8">
         <Card>
           <CardHeader>
             <CardTitle>
@@ -285,15 +285,15 @@ const AddEditStock = () => {
                   )}
                 />
 
-                <div className="flex gap-4">
-                  <Button type="submit" className="w-full md:w-auto">
+                <div className="flex flex-col gap-3 sm:flex-row">
+                  <Button type="submit" className="w-full sm:w-auto">
                     {isEditing ? "Salvar Alterações" : "Adicionar ao Estoque"}
                   </Button>
                   <Button
                     type="button"
                     variant="outline"
-                    onClick={() => navigate("/")}
-                    className="w-full md:w-auto"
+                    onClick={() => navigate(-1)}
+                    className="w-full sm:w-auto"
                   >
                     Cancelar
                   </Button>

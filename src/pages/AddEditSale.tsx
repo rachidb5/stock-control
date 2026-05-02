@@ -12,6 +12,7 @@ import { Switch } from "@/components/ui/switch";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { soldDevices } from "@/data/mockData";
 import sellService from "@/services/sellService";
+import { selectCurrentUser, useSessionStore } from "@/stores/useSessionStore";
 import { toast } from "sonner";
 
 const saleSchema = z.object({
@@ -42,6 +43,7 @@ const toNumber = (value: unknown) => {
 
 const AddEditSale = () => {
   const navigate = useNavigate();
+  const currentUser = useSessionStore(selectCurrentUser);
   const { id } = useParams();
   const isEditing = !!id;
   const localSale = id ? soldDevices.find((sale) => sale.id === id) : null;
@@ -143,7 +145,12 @@ const AddEditSale = () => {
           description: `Venda de ${data.aparelho} foi atualizada.`,
         });
       } else {
-        await sellService.createSale(data);
+        await sellService.createSale({
+          ...data,
+          vendedor_id: currentUser.id,
+          vendedor_nome: currentUser.name,
+          canal_venda: "Venda manual",
+        });
         toast.success("Venda registrada!", {
           description: `Venda de ${data.aparelho} foi registrada.`,
         });
@@ -172,13 +179,13 @@ const AddEditSale = () => {
         <div className="container mx-auto px-4 py-6">
           <Button
             variant="ghost"
-            onClick={() => navigate("/produtos?tab=vendas")}
-            className="mb-4"
+            onClick={() => navigate(-1)}
+            className="mb-4 w-full justify-start sm:w-auto"
           >
             <ArrowLeft className="mr-2 h-4 w-4" />
             Voltar
           </Button>
-          <h1 className="text-3xl font-bold text-foreground">
+          <h1 className="text-2xl font-bold text-foreground sm:text-3xl">
             {isEditing ? "Editar Venda" : "Registrar Nova Venda"}
           </h1>
           <p className="text-muted-foreground mt-1">
@@ -187,7 +194,7 @@ const AddEditSale = () => {
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-8">
+      <main className="container mx-auto px-4 py-6 sm:py-8">
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             <Card>
@@ -500,8 +507,8 @@ const AddEditSale = () => {
               </CardContent>
             </Card>
 
-            <div className="flex gap-4">
-              <Button type="submit" size="lg" disabled={submitting}>
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <Button type="submit" size="lg" disabled={submitting} className="w-full sm:w-auto">
                 {submitting ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -511,7 +518,7 @@ const AddEditSale = () => {
                   isEditing ? "Salvar Alterações" : "Registrar Venda"
                 )}
               </Button>
-              <Button type="button" variant="outline" size="lg" onClick={() => navigate("/")} disabled={submitting}>
+              <Button type="button" variant="outline" size="lg" onClick={() => navigate(-1)} disabled={submitting} className="w-full sm:w-auto">
                 Cancelar
               </Button>
             </div>

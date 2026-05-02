@@ -37,7 +37,7 @@ export default function Index() {
       <div className="flex min-h-[calc(100vh-220px)] items-center justify-center">
         <div className="w-full max-w-5xl space-y-8">
           <div className="space-y-3 text-center">
-            <h2 className="text-4xl font-semibold tracking-tight sm:text-5xl">
+            <h2 className="text-3xl font-semibold sm:text-4xl">
               {`Olá ${firstName}, ${timeGreeting}.`}
             </h2>
             <p className="mx-auto max-w-2xl text-sm text-muted-foreground sm:text-base">
@@ -45,27 +45,29 @@ export default function Index() {
             </p>
           </div>
 
-          <div className="grid gap-6 md:grid-cols-2">
+          <div className="grid gap-4 md:grid-cols-2">
             <button
               type="button"
               onClick={() => navigate("/sale/add")}
-              className="group relative overflow-hidden rounded-[2rem] border border-primary/20 bg-gradient-to-br from-primary to-primary/80 p-8 text-left text-primary-foreground shadow-lg transition-transform hover:-translate-y-1"
+              className="group page-surface relative overflow-hidden p-6 text-left transition hover:border-primary/35 hover:shadow-md"
             >
               <div className="flex items-start justify-between gap-4">
                 <div className="space-y-4">
-                  <span className="inline-flex w-fit whitespace-nowrap rounded-full bg-white/15 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] sm:text-xs">
+                  <span className="inline-flex w-fit whitespace-nowrap rounded-full bg-primary/10 px-3 py-1 text-[11px] font-semibold uppercase text-primary sm:text-xs">
                     Operação principal
                   </span>
                   <div className="space-y-2">
-                    <h3 className="text-3xl font-semibold">Iniciar Venda</h3>
-                    <p className="max-w-sm text-sm text-primary-foreground/80">
+                    <h3 className="text-2xl font-semibold sm:text-3xl">Iniciar Venda</h3>
+                    <p className="max-w-sm text-sm text-muted-foreground">
                       Abra uma nova negociação, registre valores e avance direto para o fechamento.
                     </p>
                   </div>
                 </div>
-                <ShoppingCart className="h-8 w-8 shrink-0 transition-transform group-hover:translate-x-1" />
+                <div className="rounded-xl bg-primary/10 p-3 text-primary transition-transform group-hover:translate-x-1">
+                  <ShoppingCart className="h-6 w-6 shrink-0" />
+                </div>
               </div>
-              <div className="mt-10 flex items-center gap-2 text-sm font-medium">
+              <div className="mt-8 flex items-center gap-2 text-sm font-medium text-primary">
                 Começar agora
                 <ArrowRight className="h-4 w-4" />
               </div>
@@ -74,23 +76,25 @@ export default function Index() {
             <button
               type="button"
               onClick={() => navigate("/produto")}
-              className="group relative overflow-hidden rounded-[2rem] border border-border/70 bg-card p-8 text-left shadow-sm transition-transform hover:-translate-y-1 hover:border-primary/30"
+              className="group page-surface relative overflow-hidden p-6 text-left transition hover:border-primary/35 hover:shadow-md"
             >
               <div className="flex items-start justify-between gap-4">
                 <div className="space-y-4">
-                  <span className="inline-flex w-fit whitespace-nowrap rounded-full bg-secondary px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground sm:text-xs">
+                  <span className="inline-flex w-fit whitespace-nowrap rounded-full bg-secondary px-3 py-1 text-[11px] font-semibold uppercase text-muted-foreground sm:text-xs">
                     Consulta rápida
                   </span>
                   <div className="space-y-2">
-                    <h3 className="text-3xl font-semibold">Consultar Estoque</h3>
+                    <h3 className="text-2xl font-semibold sm:text-3xl">Consultar Estoque</h3>
                     <p className="max-w-sm text-sm text-muted-foreground">
                       Verifique disponibilidade, detalhe os aparelhos e identifique oportunidades antes de ofertar.
                     </p>
                   </div>
                 </div>
-                <Package className="h-8 w-8 shrink-0 text-primary transition-transform group-hover:translate-x-1" />
+                <div className="rounded-xl bg-accent/10 p-3 text-accent transition-transform group-hover:translate-x-1">
+                  <Package className="h-6 w-6 shrink-0" />
+                </div>
               </div>
-              <div className="mt-10 flex items-center gap-2 text-sm font-medium text-primary">
+              <div className="mt-8 flex items-center gap-2 text-sm font-medium text-primary">
                 Ver estoque
                 <ArrowRight className="h-4 w-4" />
               </div>

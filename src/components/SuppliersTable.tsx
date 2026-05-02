@@ -284,12 +284,12 @@ export function SuppliersTable() {
     <div className="space-y-6">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight">Fornecedores</h2>
+          <h2 className="text-2xl font-bold sm:text-3xl">Fornecedores</h2>
           <p className="text-muted-foreground">
             Gerencie parceiros comerciais, contatos e dados fiscais.
           </p>
         </div>
-        <Button onClick={openCreateDialog}>
+        <Button onClick={openCreateDialog} className="w-full sm:w-auto">
           <Plus className="mr-2 h-4 w-4" />
           Novo fornecedor
         </Button>
@@ -343,7 +343,7 @@ export function SuppliersTable() {
                   className="pl-8"
                 />
               </div>
-              <Button type="button" onClick={applySearch} disabled={loading}>
+              <Button type="button" onClick={applySearch} disabled={loading} className="w-full md:w-auto">
                 <Search className="mr-2 h-4 w-4" />
                 Buscar
               </Button>
@@ -377,11 +377,11 @@ export function SuppliersTable() {
                     <TableRow key={supplier.id}>
                       <TableCell>
                         <div className="space-y-1">
-                          <div className="font-medium">{supplier.razao_social}</div>
+                          <div className="max-w-[240px] truncate font-medium">{supplier.razao_social}</div>
                           {supplier.nome_fantasia && (
                             <div className="flex items-center gap-2 text-sm text-muted-foreground">
                               <Building2 className="h-3 w-3" />
-                              {supplier.nome_fantasia}
+                              <span className="block max-w-[220px] truncate">{supplier.nome_fantasia}</span>
                             </div>
                           )}
                         </div>
@@ -395,7 +395,7 @@ export function SuppliersTable() {
                           </div>
                           <div className="flex items-center gap-2 text-sm text-muted-foreground">
                             <Mail className="h-3 w-3" />
-                            {supplier.email}
+                            <span className="block max-w-[220px] truncate">{supplier.email}</span>
                           </div>
                         </div>
                       </TableCell>
@@ -591,11 +591,11 @@ export function SuppliersTable() {
             </div>
           </div>
 
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setIsDialogOpen(false)} className="w-full sm:w-auto">
               Cancelar
             </Button>
-            <Button onClick={handleSubmit}>
+            <Button onClick={handleSubmit} className="w-full sm:w-auto">
               {editingSupplier ? "Salvar alteracoes" : "Criar fornecedor"}
             </Button>
           </DialogFooter>

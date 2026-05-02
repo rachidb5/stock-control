@@ -279,12 +279,12 @@ export function ClientsTable() {
     <div className="space-y-6">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight">Clientes</h2>
+          <h2 className="text-2xl font-bold sm:text-3xl">Clientes</h2>
           <p className="text-muted-foreground">
             Organize sua carteira, atualize dados e mantenha o relacionamento sempre à mão.
           </p>
         </div>
-        <Button onClick={openCreateDialog}>
+        <Button onClick={openCreateDialog} className="w-full sm:w-auto">
           <Plus className="mr-2 h-4 w-4" />
           Novo cliente
         </Button>
@@ -338,7 +338,7 @@ export function ClientsTable() {
                   className="pl-8"
                 />
               </div>
-              <Button type="button" onClick={applySearch} disabled={loading}>
+              <Button type="button" onClick={applySearch} disabled={loading} className="w-full md:w-auto">
                 <Search className="mr-2 h-4 w-4" />
                 Buscar
               </Button>
@@ -370,7 +370,7 @@ export function ClientsTable() {
                 ) : (
                   clients.map((client) => (
                     <TableRow key={client.id}>
-                      <TableCell className="font-medium">{client.nome}</TableCell>
+                      <TableCell className="max-w-[220px] truncate font-medium">{client.nome}</TableCell>
                       <TableCell>{formatCPF(client.cpf)}</TableCell>
                       <TableCell>
                         <div className="space-y-1">
@@ -380,7 +380,7 @@ export function ClientsTable() {
                           </div>
                           <div className="flex items-center gap-2 text-sm text-muted-foreground">
                             <Mail className="h-3 w-3" />
-                            {client.email}
+                            <span className="block max-w-[220px] truncate">{client.email}</span>
                           </div>
                         </div>
                       </TableCell>
@@ -566,11 +566,11 @@ export function ClientsTable() {
             </div>
           </div>
 
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setIsDialogOpen(false)} className="w-full sm:w-auto">
               Cancelar
             </Button>
-            <Button onClick={handleSubmit}>
+            <Button onClick={handleSubmit} className="w-full sm:w-auto">
               {editingClient ? "Salvar alterações" : "Criar cliente"}
             </Button>
           </DialogFooter>

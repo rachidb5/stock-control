@@ -49,7 +49,7 @@ const StockDetail = () => {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Button onClick={() => navigate("/")} className="w-full">
+            <Button onClick={() => navigate(-1)} className="w-full">
               <ArrowLeft className="mr-2 h-4 w-4" />
               Voltar para início
             </Button>
@@ -79,15 +79,15 @@ const StockDetail = () => {
         <div className="container mx-auto px-4 py-6">
           <Button
             variant="ghost"
-            onClick={() => navigate("/")}
-            className="mb-4"
+            onClick={() => navigate(-1)}
+            className="mb-4 w-full justify-start sm:w-auto"
           >
             <ArrowLeft className="mr-2 h-4 w-4" />
             Voltar
           </Button>
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-foreground flex items-center gap-2">
+              <h1 className="flex items-center gap-2 text-2xl font-bold text-foreground sm:text-3xl">
                 <Package className="h-8 w-8" />
                 Detalhes do Produto
               </h1>
@@ -95,7 +95,7 @@ const StockDetail = () => {
                 Informações completas do item em estoque
               </p>
             </div>
-            <Button onClick={() => navigate(`/produto/edit/${device.id}`)}>
+            <Button onClick={() => navigate(`/produto/edit/${device.id}`)} className="w-full sm:w-auto">
               <Edit className="mr-2 h-4 w-4" />
               Editar
             </Button>
@@ -103,7 +103,7 @@ const StockDetail = () => {
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-8">
+      <main className="container mx-auto px-4 py-6 sm:py-8">
         <div className="grid gap-6 md:grid-cols-2">
           <Card>
             <CardHeader>
@@ -182,15 +182,16 @@ const StockDetail = () => {
           )}
         </div>
 
-        <div className="mt-6 flex gap-4">
+        <div className="mt-6 flex flex-col gap-3 sm:flex-row">
           <Button
             onClick={() => navigate(`/produto/edit/${device.id}`)}
             size="lg"
+            className="w-full sm:w-auto"
           >
             <Edit className="mr-2 h-4 w-4" />
             Editar Produto
           </Button>
-          <Button variant="outline" onClick={() => navigate("/")} size="lg">
+          <Button variant="outline" onClick={() => navigate(-1)} size="lg" className="w-full sm:w-auto">
             Voltar para Estoque
           </Button>
         </div>
