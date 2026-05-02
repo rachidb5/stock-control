@@ -60,38 +60,38 @@ export const hasCommercialManagementAccess = hasFullAccess;
 export const defaultUsers: AppUser[] = [
   {
     id: "seller-joao",
-    employeeId: "VEN-1001",
+    employeeId: "ADM-1001",
     name: "João Silva",
     email: "joao.silva@exemplo.com",
     phone: "(11) 99999-9999",
     address: "Rua das Flores, 123",
     city: "São Paulo",
     company: "StockControl Mobile",
-    role: "vendedor",
+    role: "admin",
     monthlyGoal: 48000,
   },
   {
     id: "seller-camila",
-    employeeId: "VEN-1002",
+    employeeId: "ADM-1002",
     name: "Camila Rocha",
     email: "camila.rocha@exemplo.com",
     phone: "(11) 98888-1100",
     address: "Av. Brasil, 456",
     city: "São Paulo",
     company: "StockControl Mobile",
-    role: "vendedor",
+    role: "admin",
     monthlyGoal: 56000,
   },
   {
     id: "seller-rafael",
-    employeeId: "VEN-1003",
+    employeeId: "ADM-1003",
     name: "Rafael Costa",
     email: "rafael.costa@exemplo.com",
     phone: "(11) 97777-2200",
     address: "Rua Central, 50",
     city: "Campinas",
     company: "StockControl Mobile",
-    role: "vendedor",
+    role: "admin",
     monthlyGoal: 52000,
   },
   {
@@ -111,23 +111,16 @@ export const defaultUsers: AppUser[] = [
 const defaultUsersById = new Map(defaultUsers.map((user) => [user.id, user]));
 
 function normalizeRole(role?: string): UserRole {
-  if (role === "gestor" || role === "admin") {
-    return role;
-  }
-
-  return "vendedor";
+  return role === "gestor" || role === "admin" || role === "vendedor"
+    ? role
+    : "admin";
 }
 
 function normalizeUser(user: Partial<AppUser>, index: number): AppUser {
   const fallback = user.id ? defaultUsersById.get(user.id) : undefined;
-  const normalizedRole = user.id === "admin-mariana" ? "admin" : user.role;
-  const role = normalizeRole(normalizedRole ?? fallback?.role);
+  const role: UserRole = "admin";
   const generatedEmployeeId =
-    role === "admin"
-      ? `ADM-${String(index + 1).padStart(4, "0")}`
-      : role === "gestor"
-      ? `GES-${String(index + 1).padStart(4, "0")}`
-      : `VEN-${String(index + 1).padStart(4, "0")}`;
+    `ADM-${String(index + 1).padStart(4, "0")}`;
 
   return {
     id: user.id ?? fallback?.id ?? `user-${crypto.randomUUID()}`,
@@ -158,15 +151,12 @@ function buildSessionState(
   }
 
   const users = persistedState.users.map((user, index) => normalizeUser(user, index));
-  const usersWithAdmin = users.some((user) => user.role === "admin")
-    ? users
-    : [...users, defaultUsersById.get("admin-mariana") ?? defaultUsers[3]];
   const currentUserId = users.some((user) => user.id === persistedState.currentUserId)
     ? persistedState.currentUserId ?? users[0].id
     : users[0].id;
 
   return {
-    users: usersWithAdmin,
+    users,
     currentUserId,
   };
 }
@@ -198,7 +188,7 @@ export const useSessionStore = create<SessionState>()(
         return newId;
       },
       setAuthenticatedUser: (data) => {
-        const role = normalizeRole(data.role);
+        const role: UserRole = "admin";
         let resolvedId = data.id;
 
         set((state) => {
@@ -252,7 +242,7 @@ export const useSessionStore = create<SessionState>()(
     }),
     {
       name: "stock-control-session",
-      version: 4,
+      version: 5,
       storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({
         users: state.users,
