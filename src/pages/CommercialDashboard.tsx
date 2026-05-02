@@ -7,7 +7,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { getVisibleSales } from "@/lib/salesInsights";
 import commercialDashboardService from "@/services/commercialDashboardService";
-import { selectCurrentUser, useSessionStore } from "@/stores/useSessionStore";
+import {
+  hasCommercialManagementAccess,
+  selectCurrentUser,
+  useSessionStore,
+} from "@/stores/useSessionStore";
 import { Loader2, Plus, RefreshCw } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
@@ -83,7 +87,7 @@ export default function CommercialDashboard() {
 
             <SalesTable
               devices={visibleSales}
-              showSeller={currentUser.role === "gestor"}
+              showSeller={hasCommercialManagementAccess(currentUser)}
             />
           </>
         )}

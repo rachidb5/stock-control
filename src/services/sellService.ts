@@ -40,6 +40,7 @@ export const sellService = {
     search?: string;
     status?: "completed" | "pending";
     condition?: string;
+    seller?: string;
     startDate?: string;
     endDate?: string;
   }): Promise<SoldDeviceResponse> => {

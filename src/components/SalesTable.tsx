@@ -56,6 +56,7 @@ interface SalesTableProps {
   search?: string;
   status?: string;
   condition?: string;
+  seller?: string;
   startDate?: string;
   endDate?: string;
   hideFilters?: boolean;
@@ -70,6 +71,7 @@ export function SalesTable({
   search,
   status,
   condition,
+  seller,
   startDate: controlledStartDate,
   endDate: controlledEndDate,
   hideFilters = false,
@@ -83,7 +85,7 @@ export function SalesTable({
   const [draftConditionFilter, setDraftConditionFilter] = useState<string>("all");
   const [localConditionFilter, setLocalConditionFilter] = useState<string>("all");
   const [draftSellerFilter, setDraftSellerFilter] = useState<string>("all");
-  const [sellerFilter, setSellerFilter] = useState<string>("all");
+  const [localSellerFilter, setLocalSellerFilter] = useState<string>("all");
   const [draftStartDate, setDraftStartDate] = useState("");
   const [localStartDate, setLocalStartDate] = useState("");
   const [draftEndDate, setDraftEndDate] = useState("");
@@ -97,6 +99,7 @@ export function SalesTable({
   const searchTerm = search ?? localSearchTerm;
   const statusFilter = status ?? localStatusFilter;
   const conditionFilter = condition ?? localConditionFilter;
+  const sellerFilter = seller ?? localSellerFilter;
   const startDate = controlledStartDate ?? localStartDate;
   const endDate = controlledEndDate ?? localEndDate;
   const currentPage = page ?? pagination.page;
@@ -109,6 +112,7 @@ export function SalesTable({
       searchTerm,
       statusFilter,
       conditionFilter,
+      sellerFilter,
       startDate,
       endDate,
     ],
@@ -122,6 +126,7 @@ export function SalesTable({
             ? undefined
             : (statusFilter as "completed" | "pending"),
         condition: conditionFilter === "all" ? undefined : conditionFilter,
+        seller: sellerFilter === "all" ? undefined : sellerFilter,
         startDate: startDate || undefined,
         endDate: endDate || undefined,
       }),
@@ -173,6 +178,7 @@ export function SalesTable({
     const matchesSeller =
       !showSeller ||
       sellerFilter === "all" ||
+      (device.vendedor_id ?? "") === sellerFilter ||
       (device.vendedor_nome ?? "") === sellerFilter;
 
     const deviceDate = new Date(`${device.data.split("T")[0]}T00:00:00`);
@@ -257,7 +263,7 @@ export function SalesTable({
     setLocalSearchTerm(draftSearchTerm);
     setLocalStatusFilter(draftStatusFilter);
     setLocalConditionFilter(draftConditionFilter);
-    setSellerFilter(draftSellerFilter);
+    setLocalSellerFilter(draftSellerFilter);
     setLocalStartDate(draftStartDate);
     setLocalEndDate(draftEndDate);
     handlePageChange(1);

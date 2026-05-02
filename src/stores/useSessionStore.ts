@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 
-export type UserRole = "vendedor" | "gestor";
+export type UserRole = "vendedor" | "gestor" | "admin";
 
 export interface AppUser {
   id: string;
@@ -32,12 +32,19 @@ type PersistedSessionState = Partial<Pick<SessionState, "users" | "currentUserId
 export const roleLabels: Record<UserRole, string> = {
   vendedor: "Vendedor",
   gestor: "Gestor",
+  admin: "Admin",
 };
 
 export const roleDescriptions: Record<UserRole, string> = {
   vendedor: "Foco em acompanhar a própria carteira, meta e vendas do mês.",
   gestor: "Acesso gerencial para acompanhar equipe, comparativos e indicadores.",
+  admin: "Acesso administrativo para gerenciar usuários e configurações.",
 };
+
+export const isUserAdmin = (user: Pick<AppUser, "role">) => user.role === "admin";
+
+export const hasCommercialManagementAccess = (user: Pick<AppUser, "role">) =>
+  user.role === "gestor" || user.role === "admin";
 
 export const defaultUsers: AppUser[] = [
   {
@@ -85,7 +92,7 @@ export const defaultUsers: AppUser[] = [
     address: "Alameda Santos, 700",
     city: "São Paulo",
     company: "StockControl Mobile",
-    role: "gestor",
+    role: "admin",
     monthlyGoal: 156000,
   },
 ];
@@ -94,7 +101,7 @@ const defaultUsersById = new Map(defaultUsers.map((user) => [user.id, user]));
 
 function normalizeRole(role?: string): UserRole {
   if (role === "gestor" || role === "admin") {
-    return "gestor";
+    return role;
   }
 
   return "vendedor";
@@ -102,9 +109,12 @@ function normalizeRole(role?: string): UserRole {
 
 function normalizeUser(user: Partial<AppUser>, index: number): AppUser {
   const fallback = user.id ? defaultUsersById.get(user.id) : undefined;
-  const role = normalizeRole(user.role ?? fallback?.role);
+  const normalizedRole = user.id === "admin-mariana" ? "admin" : user.role;
+  const role = normalizeRole(normalizedRole ?? fallback?.role);
   const generatedEmployeeId =
-    role === "gestor"
+    role === "admin"
+      ? `ADM-${String(index + 1).padStart(4, "0")}`
+      : role === "gestor"
       ? `GES-${String(index + 1).padStart(4, "0")}`
       : `VEN-${String(index + 1).padStart(4, "0")}`;
 
@@ -137,12 +147,15 @@ function buildSessionState(
   }
 
   const users = persistedState.users.map((user, index) => normalizeUser(user, index));
+  const usersWithAdmin = users.some((user) => user.role === "admin")
+    ? users
+    : [...users, defaultUsersById.get("admin-mariana") ?? defaultUsers[3]];
   const currentUserId = users.some((user) => user.id === persistedState.currentUserId)
     ? persistedState.currentUserId ?? users[0].id
     : users[0].id;
 
   return {
-    users,
+    users: usersWithAdmin,
     currentUserId,
   };
 }
@@ -177,7 +190,7 @@ export const useSessionStore = create<SessionState>()(
     }),
     {
       name: "stock-control-session",
-      version: 3,
+      version: 4,
       storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({
         users: state.users,

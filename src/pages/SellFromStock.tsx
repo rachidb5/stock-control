@@ -30,7 +30,7 @@ import {
 } from "@/components/ui/select";
 import { ArrowLeft, Package, User, DollarSign, Loader2 } from "lucide-react";
 import { masks, validators } from "@/hooks/use-masks";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import sellService from "@/services/sellService";
 import stockService, { StockItem } from "@/services/stockServices";
 import { useClientStore } from "@/stores/useClientStore";
@@ -45,6 +45,7 @@ const sellSchema = z.object({
   fornecedor: z.string().min(1, "Fornecedor é obrigatório"),
   valor_compra: z.number().min(0, "Valor de compra deve ser positivo"),
   condicao: z.string().min(1, "Condição é obrigatória"),
+  vendedor_id: z.string().min(1, "Vendedor é obrigatório"),
 
   // Buyer info
   comprador: z.string().min(1, "Nome do comprador é obrigatório"),
@@ -79,6 +80,13 @@ const SellFromStock = () => {
   const [device, setDevice] = useState<StockItem | null>(null);
   const clients = useClientStore((state) => state.clients);
   const currentUser = useSessionStore(selectCurrentUser);
+  const users = useSessionStore((state) => state.users);
+  const sellers = useMemo(
+    () => users,
+    [users],
+  );
+  const getSellerName = (sellerId: string) =>
+    sellers.find((seller) => seller.id === sellerId)?.name ?? currentUser.name;
 
   useEffect(() => {
     if (!id) return;
@@ -108,6 +116,7 @@ const SellFromStock = () => {
       fornecedor: "",
       valor_compra: 0,
       condicao: "",
+      vendedor_id: currentUser.id,
       comprador: "",
       cpf_comprador: "",
       telefone_comprador: "",
@@ -133,6 +142,7 @@ const SellFromStock = () => {
       condicao: device.observacao?.toLowerCase().includes("quebrada")
         ? "Tela quebrada"
         : "Seminovo",
+      vendedor_id: currentUser.id,
       comprador: "",
       cpf_comprador: "",
       telefone_comprador: "",
@@ -144,7 +154,7 @@ const SellFromStock = () => {
       aparelho_recebido: true,
       observacao: device.observacao ?? "",
     });
-  }, [device, form]);
+  }, [currentUser.id, device, form]);
 
   const watchPrecoVista = form.watch("preco_vista");
   const watchValorEntrega = form.watch("valor_entrega");
@@ -181,8 +191,8 @@ const SellFromStock = () => {
         valor_entrega: data.valor_entrega,
         valor_capa_pelicula: data.valor_capa_pelicula,
         valor_total_venda: valorTotalVenda,
-        vendedor_id: currentUser.id,
-        vendedor_nome: currentUser.name,
+        vendedor_id: data.vendedor_id,
+        vendedor_nome: getSellerName(data.vendedor_id),
         canal_venda: "Estoque",
       });
 
@@ -395,6 +405,31 @@ const SellFromStock = () => {
                 <CardDescription>Informações do cliente</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="vendedor_id"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Vendedor</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecione o vendedor" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {sellers.map((seller) => (
+                            <SelectItem key={seller.id} value={seller.id}>
+                              {seller.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
                 {clients.length > 0 && (
                   <div className="mb-4">
                     <FormLabel>Selecionar Cliente Existente</FormLabel>

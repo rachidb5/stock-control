@@ -1,7 +1,7 @@
 import api from "./api";
 import { requestData } from "./serviceUtils";
 
-export type UserAccessLevel = "vendedor" | "gestor";
+export type UserAccessLevel = "vendedor" | "gestor" | "admin";
 
 export interface ManagedUser {
   id: string;

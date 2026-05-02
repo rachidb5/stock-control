@@ -13,7 +13,11 @@ import {
   getSalesMetrics,
   getTopProduct,
 } from "@/lib/salesInsights";
-import { AppUser, roleLabels } from "@/stores/useSessionStore";
+import {
+  AppUser,
+  hasCommercialManagementAccess,
+  roleLabels,
+} from "@/stores/useSessionStore";
 import type { SoldDevice } from "@/services/sellService";
 import {
   Area,
@@ -98,7 +102,7 @@ export function SalesOverview({
   const topProduct = getTopProduct(visibleSales);
 
   const bestSeller = leaderboard[0];
-  const adminView = currentUser.role === "gestor";
+  const adminView = hasCommercialManagementAccess(currentUser);
   const headline =
     adminView
       ? "Visão consolidada da operação comercial"
@@ -363,7 +367,7 @@ export function SalesOverview({
                           {formatCurrency(seller.averageTicket)}
                         </p>
                       </div>
-                      <Badge variant={seller.role === "gestor" ? "secondary" : "outline"}>
+                      <Badge variant={seller.role !== "vendedor" ? "secondary" : "outline"}>
                         {roleLabels[seller.role]}
                       </Badge>
                     </div>

@@ -12,12 +12,14 @@ import {
 } from "@/components/ui/sidebar";
 import { BarChart3, Factory, House, Package, User, UserPlus, Users } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { isUserAdmin, selectCurrentUser, useSessionStore } from "@/stores/useSessionStore";
 
 export function AppSidebar() {
   const location = useLocation();
   const navigate = useNavigate();
   const { state, setOpenMobile } = useSidebar();
   const isCollapsed = state === "collapsed";
+  const currentUser = useSessionStore(selectCurrentUser);
 
   const menuSections = [
     {
@@ -33,7 +35,9 @@ export function AppSidebar() {
       items: [
         { title: "Clientes", url: "/clients", icon: Users },
         { title: "Fornecedores", url: "/fornecedores", icon: Factory },
-        { title: "Usuarios", url: "/conta/criar", icon: UserPlus },
+        ...(isUserAdmin(currentUser)
+          ? [{ title: "Usuarios", url: "/conta/criar", icon: UserPlus }]
+          : []),
       ],
     },
     {

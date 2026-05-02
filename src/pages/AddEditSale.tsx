@@ -1,5 +1,5 @@
 import { useNavigate, useParams } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -7,6 +7,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { ArrowLeft, Loader2 } from "lucide-react";
@@ -17,6 +24,7 @@ import { toast } from "sonner";
 
 const saleSchema = z.object({
   data: z.string().min(1, "Data é obrigatória"),
+  vendedor_id: z.string().min(1, "Vendedor é obrigatório"),
   aparelho: z.string().min(1, "Aparelho é obrigatório").max(100),
   cor: z.string().min(1, "Cor é obrigatória").max(50),
   condicao: z.string().min(1, "Condição é obrigatória").max(50),
@@ -44,16 +52,34 @@ const toNumber = (value: unknown) => {
 const AddEditSale = () => {
   const navigate = useNavigate();
   const currentUser = useSessionStore(selectCurrentUser);
+  const users = useSessionStore((state) => state.users);
   const { id } = useParams();
   const isEditing = !!id;
   const localSale = id ? soldDevices.find((sale) => sale.id === id) : null;
   const [fetching, setFetching] = useState(isEditing);
   const [submitting, setSubmitting] = useState(false);
+  const sellers = useMemo(
+    () => users,
+    [users],
+  );
+  const getSellerName = useCallback(
+    (sellerId: string) =>
+      sellers.find((seller) => seller.id === sellerId)?.name ?? currentUser.name,
+    [currentUser.name, sellers],
+  );
+  const getSellerId = useCallback(
+    (sellerId?: string, sellerName?: string) =>
+      sellerId ||
+      sellers.find((seller) => seller.name === sellerName)?.id ||
+      currentUser.id,
+    [currentUser.id, sellers],
+  );
 
   const form = useForm<SaleFormData>({
     resolver: zodResolver(saleSchema),
     defaultValues: {
       data: new Date().toISOString().split("T")[0],
+      vendedor_id: currentUser.id,
       aparelho: "",
       cor: "",
       condicao: "",
@@ -79,6 +105,7 @@ const AddEditSale = () => {
       if (localSale) {
         form.reset({
           data: localSale.data.split("T")[0],
+          vendedor_id: getSellerId(localSale.vendedor_id, localSale.vendedor_nome),
           aparelho: localSale.aparelho,
           cor: localSale.cor,
           condicao: localSale.condicao,
@@ -105,6 +132,7 @@ const AddEditSale = () => {
         const sale = await sellService.getSaleById(id);
         form.reset({
           data: sale.data.split("T")[0],
+          vendedor_id: getSellerId(sale.vendedor_id, sale.vendedor_nome),
           aparelho: sale.aparelho,
           cor: sale.cor,
           condicao: sale.condicao,
@@ -130,25 +158,28 @@ const AddEditSale = () => {
       }
     };
     fetchSale();
-  }, [id, isEditing, form, localSale, navigate]);
+  }, [id, isEditing, form, getSellerId, localSale, navigate]);
 
   const onSubmit = async (data: SaleFormData) => {
     try {
       setSubmitting(true);
+      const salePayload = {
+        ...data,
+        vendedor_nome: getSellerName(data.vendedor_id),
+      };
+
       if (isEditing && id) {
         if (localSale) {
-          Object.assign(localSale, data);
+          Object.assign(localSale, salePayload);
         } else {
-          await sellService.updateSale(id, data);
+          await sellService.updateSale(id, salePayload);
         }
         toast.success("Venda atualizada!", {
           description: `Venda de ${data.aparelho} foi atualizada.`,
         });
       } else {
         await sellService.createSale({
-          ...data,
-          vendedor_id: currentUser.id,
-          vendedor_nome: currentUser.name,
+          ...salePayload,
           canal_venda: "Venda manual",
         });
         toast.success("Venda registrada!", {
@@ -213,6 +244,31 @@ const AddEditSale = () => {
                         <FormControl>
                           <Input type="date" {...field} />
                         </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="vendedor_id"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Vendedor</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecione o vendedor" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {sellers.map((seller) => (
+                              <SelectItem key={seller.id} value={seller.id}>
+                                {seller.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                         <FormMessage />
                       </FormItem>
                     )}

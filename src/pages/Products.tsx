@@ -13,6 +13,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useSessionStore } from "@/stores/useSessionStore";
 import { Plus, Package, Search, ShoppingCart, X } from "lucide-react";
 
 const validTabs = new Set(["estoque", "vendas"]);
@@ -28,14 +29,18 @@ export default function Products() {
   const observation = searchParams.get("observacao") ?? "all";
   const status = searchParams.get("status") ?? "all";
   const condition = searchParams.get("condicao") ?? "all";
+  const seller = searchParams.get("vendedor") ?? "all";
   const startDate = searchParams.get("inicio") ?? "";
   const endDate = searchParams.get("fim") ?? "";
   const page = Math.max(Number(searchParams.get("pagina") ?? 1) || 1, 1);
+  const users = useSessionStore((state) => state.users);
+  const sellers = users;
   const [draftFilters, setDraftFilters] = useState({
     search,
     observation,
     status,
     condition,
+    seller,
     startDate,
     endDate,
   });
@@ -46,10 +51,11 @@ export default function Products() {
       observation,
       status,
       condition,
+      seller,
       startDate,
       endDate,
     });
-  }, [search, observation, status, condition, startDate, endDate]);
+  }, [search, observation, status, condition, seller, startDate, endDate]);
 
   const handleTabChange = (tab: string) => {
     const next = new URLSearchParams(searchParams);
@@ -79,6 +85,7 @@ export default function Products() {
             fim: draftFilters.endDate,
             status: draftFilters.status,
             condicao: draftFilters.condition,
+            vendedor: draftFilters.seller,
           };
 
     Object.entries(filters).forEach(([key, value]) => {
@@ -124,7 +131,7 @@ export default function Products() {
           </Button>
         </div>
 
-        <div className="page-surface grid gap-3 p-4 md:grid-cols-2 lg:grid-cols-5">
+        <div className="page-surface grid gap-3 p-4 md:grid-cols-2 lg:grid-cols-6">
           <div className="relative md:col-span-2">
             <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
@@ -198,6 +205,22 @@ export default function Products() {
                   <SelectItem value="Recondicionado">Recondicionado</SelectItem>
                 </SelectContent>
               </Select>
+              <Select
+                value={draftFilters.seller}
+                onValueChange={(value) => updateDraftFilter("seller", value)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Vendedor" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos os vendedores</SelectItem>
+                  {sellers.map((seller) => (
+                    <SelectItem key={seller.id} value={seller.id}>
+                      {seller.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </>
           )}
 
@@ -245,6 +268,7 @@ export default function Products() {
               search={search}
               status={status}
               condition={condition}
+              seller={seller}
               startDate={startDate}
               endDate={endDate}
               page={page}

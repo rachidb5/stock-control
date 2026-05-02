@@ -1,5 +1,5 @@
 import type { SoldDevice } from "@/services/sellService";
-import { AppUser } from "@/stores/useSessionStore";
+import { AppUser, hasCommercialManagementAccess } from "@/stores/useSessionStore";
 
 export interface SalesMetrics {
   completedSales: number;
@@ -90,7 +90,7 @@ function isSameMonth(dateString: string, referenceDate: Date) {
 }
 
 export function getVisibleSales(sales: SoldDevice[], currentUser: AppUser) {
-  if (currentUser.role === "gestor") {
+  if (hasCommercialManagementAccess(currentUser)) {
     return sales;
   }
 
@@ -127,7 +127,7 @@ export function getGoalProgress(
   const monthSales = sales.filter((sale) => isSameMonth(sale.data, referenceDate));
 
   const target =
-    currentUser.role === "gestor"
+    hasCommercialManagementAccess(currentUser)
       ? users
           .filter((user) => user.role === "vendedor")
           .reduce((sum, user) => sum + user.monthlyGoal, 0)
@@ -135,7 +135,9 @@ export function getGoalProgress(
 
   const achieved = monthSales
     .filter((sale) =>
-      currentUser.role === "gestor" ? true : sale.vendedor_id === currentUser.id,
+      hasCommercialManagementAccess(currentUser)
+        ? true
+        : sale.vendedor_id === currentUser.id,
     )
     .reduce((sum, sale) => sum + getRevenue(sale), 0);
 

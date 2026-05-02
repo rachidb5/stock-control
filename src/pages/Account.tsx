@@ -22,6 +22,7 @@ import {
 import { masks, validators } from "@/hooks/use-masks";
 import { Layout } from "@/components/Layout";
 import {
+  isUserAdmin,
   roleDescriptions,
   roleLabels,
   selectCurrentUser,
@@ -220,7 +221,7 @@ export default function Account() {
                 </p>
               </div>
 
-              {currentUser.role === "gestor" && (
+              {isUserAdmin(currentUser) && (
                 <Button className="w-full" onClick={() => navigate("/conta/criar")}>
                   <UserPlus className="mr-2 h-4 w-4" />
                   Criar novo usuário
@@ -418,12 +419,12 @@ export default function Account() {
               </CardContent>
             </Card>
 
-            {currentUser.role === "gestor" && (
+            {isUserAdmin(currentUser) && (
               <Card>
                 <CardHeader>
-                  <CardTitle>Equipe cadastrada</CardTitle>
+                  <CardTitle>Usuários cadastrados</CardTitle>
                   <CardDescription>
-                    Visão gerencial com matrícula, perfil e meta individual.
+                    Configuração administrativa com matrícula, perfil e meta individual.
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="grid gap-3 md:grid-cols-2">
@@ -434,7 +435,7 @@ export default function Account() {
                           <p className="font-medium">{user.name}</p>
                           <p className="text-sm text-muted-foreground">{user.employeeId}</p>
                         </div>
-                        <Badge variant={user.role === "gestor" ? "secondary" : "outline"}>
+                        <Badge variant={user.role !== "vendedor" ? "secondary" : "outline"}>
                           {roleLabels[user.role]}
                         </Badge>
                       </div>

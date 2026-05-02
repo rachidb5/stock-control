@@ -32,7 +32,13 @@ import {
 } from "lucide-react";
 import { masks, validators } from "@/hooks/use-masks";
 import { Layout } from "@/components/Layout";
-import { roleDescriptions, selectCurrentUser, useSessionStore, UserRole } from "@/stores/useSessionStore";
+import {
+  isUserAdmin,
+  roleDescriptions,
+  selectCurrentUser,
+  useSessionStore,
+  UserRole,
+} from "@/stores/useSessionStore";
 import userService from "@/services/userService";
 
 interface ValidationErrors {
@@ -182,14 +188,14 @@ export default function CreateUser() {
     }
   };
 
-  if (currentUser.role !== "gestor") {
+  if (!isUserAdmin(currentUser)) {
     return (
       <Layout>
         <Card className="max-w-2xl">
           <CardHeader>
             <CardTitle>Acesso restrito</CardTitle>
             <CardDescription>
-              Apenas gestores podem cadastrar novos usuários.
+              Apenas administradores podem cadastrar e configurar usuários.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -213,7 +219,7 @@ export default function CreateUser() {
           <div>
             <h1 className="text-2xl font-bold sm:text-3xl">Criar Usuário</h1>
             <p className="text-muted-foreground">
-              Cadastre um novo vendedor ou gestor com matrícula e meta inicial.
+              Cadastre vendedores, gestores e administradores com matrícula e meta inicial.
             </p>
           </div>
         </div>
@@ -339,6 +345,7 @@ export default function CreateUser() {
                 <SelectContent>
                   <SelectItem value="vendedor">Vendedor</SelectItem>
                   <SelectItem value="gestor">Gestor</SelectItem>
+                  <SelectItem value="admin">Admin</SelectItem>
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground">{roleDescriptions[userData.role]}</p>
