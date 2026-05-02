@@ -18,6 +18,7 @@ import SellFromStock from "./pages/SellFromStock";
 import CreateUser from "./pages/CreateUser";
 import StockPage from "./pages/StockPage";
 import Products from "./pages/Products";
+import Suppliers from "./pages/Suppliers";
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -31,11 +32,12 @@ const App = () => (
           <Route path="/" element={<Index />} />
           <Route path="/painel-comercial" element={<CommercialDashboard />} />
           <Route path="/produtos" element={<Products />} />
-          <Route path="/stock" element={<StockPage />} />
+          <Route path="/fornecedores" element={<Suppliers />} />
+          <Route path="/produto" element={<StockPage />} />
           <Route path="/auth" element={<Auth />} />
-          <Route path="/stock/add" element={<AddEditStock />} />
-          <Route path="/stock/edit/:id" element={<AddEditStock />} />
-          <Route path="/stock/:id" element={<StockDetail />} />
+          <Route path="/produto/add" element={<AddEditStock />} />
+          <Route path="/produto/edit/:id" element={<AddEditStock />} />
+          <Route path="/produto/:id" element={<StockDetail />} />
           <Route path="/sale/add" element={<AddEditSale />} />
           <Route path="/sale/edit/:id" element={<AddEditSale />} />
           <Route path="/sale/:id" element={<SaleDetail />} />

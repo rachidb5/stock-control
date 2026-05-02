@@ -8,6 +8,16 @@ export const masks = {
       .replace(/(-\d{2})\d+?$/, "$1");
   },
 
+  cnpj: (value: string): string => {
+    return value
+      .replace(/\D/g, "")
+      .replace(/(\d{2})(\d)/, "$1.$2")
+      .replace(/(\d{3})(\d)/, "$1.$2")
+      .replace(/(\d{3})(\d)/, "$1/$2")
+      .replace(/(\d{4})(\d{1,2})/, "$1-$2")
+      .replace(/(-\d{2})\d+?$/, "$1");
+  },
+
   phone: (value: string): string => {
     return value
       .replace(/\D/g, "")
@@ -81,6 +91,32 @@ export const validators = {
     if (remainder !== parseInt(cleanCpf[10])) return false;
 
     return true;
+  },
+
+  cnpj: (cnpj: string): boolean => {
+    const cleanCnpj = cnpj.replace(/\D/g, "");
+    if (cleanCnpj.length !== 14) return false;
+    if (/^(\d)\1+$/.test(cleanCnpj)) return false;
+
+    const calculateDigit = (base: string, weights: number[]) => {
+      const sum = base
+        .split("")
+        .reduce((total, digit, index) => total + Number(digit) * weights[index], 0);
+      const remainder = sum % 11;
+      return remainder < 2 ? 0 : 11 - remainder;
+    };
+
+    const firstDigit = calculateDigit(cleanCnpj.slice(0, 12), [
+      5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2,
+    ]);
+    const secondDigit = calculateDigit(cleanCnpj.slice(0, 13), [
+      6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2,
+    ]);
+
+    return (
+      firstDigit === Number(cleanCnpj[12]) &&
+      secondDigit === Number(cleanCnpj[13])
+    );
   },
 
   phone: (phone: string): boolean => {

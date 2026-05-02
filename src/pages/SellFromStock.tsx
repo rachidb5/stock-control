@@ -192,7 +192,7 @@ const SellFromStock = () => {
           },
         ).format(valorTotalVenda)}`,
       });
-      navigate("/stock");
+      navigate("/produto");
     } catch (error: unknown) {
       const err = error as { message?: string };
       toast.error(err?.message || "Erro ao registrar venda.");
@@ -230,7 +230,7 @@ const SellFromStock = () => {
           <p className="text-muted-foreground">
             Dispositivo não encontrado no estoque.
           </p>
-          <Button onClick={() => navigate("/stock")} className="mt-4">
+          <Button onClick={() => navigate("/produto")} className="mt-4">
             Voltar ao Estoque
           </Button>
         </Card>
@@ -244,7 +244,7 @@ const SellFromStock = () => {
         <div className="container mx-auto px-4 py-6">
           <Button
             variant="ghost"
-            onClick={() => navigate("/stock")}
+            onClick={() => navigate("/produto")}
             className="mb-4"
           >
             <ArrowLeft className="mr-2 h-4 w-4" />
@@ -671,7 +671,7 @@ const SellFromStock = () => {
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => navigate("/stock")}
+                onClick={() => navigate("/produto")}
                 className="w-full md:w-auto"
                 disabled={submitting}
               >

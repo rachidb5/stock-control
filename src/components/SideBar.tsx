@@ -10,7 +10,7 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { BarChart3, House, Package, User, Users } from "lucide-react";
+import { BarChart3, Factory, House, Package, User, UserPlus, Users } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 
 export function AppSidebar() {
@@ -23,14 +23,16 @@ export function AppSidebar() {
     { title: "Home", url: "/", icon: House },
     { title: "Produtos", url: "/produtos", icon: Package },
     { title: "Clientes", url: "/clients", icon: Users },
+    { title: "Fornecedores", url: "/fornecedores", icon: Factory },
     { title: "Painel Comercial", url: "/painel-comercial", icon: BarChart3 },
     { title: "Conta", url: "/conta", icon: User },
+    { title: "Usuarios", url: "/conta/criar", icon: UserPlus },
   ];
 
   const isActive = (path: string) =>
     location.pathname === path ||
     (path === "/produtos" &&
-      (location.pathname.startsWith("/stock") ||
+      (location.pathname.startsWith("/produto") ||
         location.pathname.startsWith("/sale") ||
         location.pathname.startsWith("/sell")));
 

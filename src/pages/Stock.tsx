@@ -49,7 +49,7 @@ const Stock = () => {
             <RefreshCw className="mr-2 h-4 w-4" />
             Atualizar
           </Button>
-          <Button onClick={() => navigate('/stock/new')}>
+          <Button onClick={() => navigate('/produto/add')}>
             <Package className="mr-2 h-4 w-4" />
             Adicionar Estoque
           </Button>

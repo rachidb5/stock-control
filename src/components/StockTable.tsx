@@ -450,7 +450,7 @@ export const StockTable = ({
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => navigate(`/stock/${device.id}`)}
+                              onClick={() => navigate(`/produto/${device.id}`)}
                               title="Ver Detalhes"
                             >
                               <Eye className="h-4 w-4" />
@@ -458,7 +458,7 @@ export const StockTable = ({
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => navigate(`/stock/edit/${device.id}`)}
+                              onClick={() => navigate(`/produto/edit/${device.id}`)}
                               title="Editar"
                             >
                               <Edit className="h-4 w-4" />

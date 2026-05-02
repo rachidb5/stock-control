@@ -73,7 +73,7 @@ export default function Index() {
 
             <button
               type="button"
-              onClick={() => navigate("/stock")}
+              onClick={() => navigate("/produto")}
               className="group relative overflow-hidden rounded-[2rem] border border-border/70 bg-card p-8 text-left shadow-sm transition-transform hover:-translate-y-1 hover:border-primary/30"
             >
               <div className="flex items-start justify-between gap-4">

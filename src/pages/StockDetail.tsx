@@ -95,7 +95,7 @@ const StockDetail = () => {
                 Informações completas do item em estoque
               </p>
             </div>
-            <Button onClick={() => navigate(`/stock/edit/${device.id}`)}>
+            <Button onClick={() => navigate(`/produto/edit/${device.id}`)}>
               <Edit className="mr-2 h-4 w-4" />
               Editar
             </Button>
@@ -184,7 +184,7 @@ const StockDetail = () => {
 
         <div className="mt-6 flex gap-4">
           <Button
-            onClick={() => navigate(`/stock/edit/${device.id}`)}
+            onClick={() => navigate(`/produto/edit/${device.id}`)}
             size="lg"
           >
             <Edit className="mr-2 h-4 w-4" />

@@ -104,7 +104,7 @@ export default function Products() {
   };
 
   const handlePrimaryAction = () => {
-    navigate(activeTab === "vendas" ? "/sale/add" : "/stock/add");
+    navigate(activeTab === "vendas" ? "/sale/add" : "/produto/add");
   };
 
   return (

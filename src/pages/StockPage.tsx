@@ -17,7 +17,7 @@ export default function StockPage() {
               Consulte disponibilidade, exporte relatórios e cadastre novos aparelhos.
             </p>
           </div>
-          <Button onClick={() => navigate("/stock/add")}>
+          <Button onClick={() => navigate("/produto/add")}>
             <Plus className="mr-2 h-4 w-4" />
             Adicionar ao estoque
           </Button>
