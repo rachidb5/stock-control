@@ -21,7 +21,6 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { ArrowLeft, Loader2 } from "lucide-react";
-import { stockDevices } from "@/data/mockData";
 import { masks, validators } from "@/hooks/use-masks";
 import stockService, { StockItem } from "@/services/stockServices";
 import { useCallback, useEffect, useState } from "react";
@@ -57,14 +56,14 @@ const AddEditStock = () => {
   const { id } = useParams();
   const isEditing = !!id;
   const [loading, setLoading] = useState(true);
-  const [device, setDevice] = useState<StockItem>(null);
 
   const fetchItem = useCallback(async () => {
+    if (!id) return;
+
     try {
       setLoading(true);
 
       const response: StockItem = await stockService.getStockById(id);
-      setDevice(response);
       form.reset({
         modelo: response.modelo,
         cor: response.cor,
@@ -79,7 +78,7 @@ const AddEditStock = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [id]);
 
   const form = useForm<StockFormData>({
     resolver: zodResolver(stockSchema),
@@ -94,19 +93,18 @@ const AddEditStock = () => {
   });
 
   useEffect(() => {
-    if(isEditing) fetchItem()
-  }, []);
+    if (isEditing) {
+      fetchItem();
+    } else {
+      setLoading(false);
+    }
+  }, [fetchItem, isEditing]);
 
-  const onSubmit = async (data: StockItem) => {
+  const onSubmit = async (data: StockFormData) => {
     try {
-      console.log(isEditing ? "Editando:" : "Adicionando:", data);
-
       if (isEditing) {
-        console.log("editing");
-        // await stockService.updateStock(data.id, data); // exemplo
         await stockService.updateStock(id, data);
       } else {
-        stockDevices.push(data);
         await stockService.createStock(data);
       }
 

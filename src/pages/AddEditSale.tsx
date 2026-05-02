@@ -17,7 +17,6 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { ArrowLeft, Loader2 } from "lucide-react";
-import { soldDevices } from "@/data/mockData";
 import sellService from "@/services/sellService";
 import {
   hasFullAccess,
@@ -60,7 +59,6 @@ const AddEditSale = () => {
   const users = useSessionStore((state) => state.users);
   const { id } = useParams();
   const isEditing = !!id;
-  const localSale = id ? soldDevices.find((sale) => sale.id === id) : null;
   const [fetching, setFetching] = useState(isEditing);
   const [submitting, setSubmitting] = useState(false);
   const sellers = useMemo(
@@ -107,31 +105,6 @@ const AddEditSale = () => {
   useEffect(() => {
     if (!isEditing || !id) return;
     const fetchSale = async () => {
-      if (localSale) {
-        form.reset({
-          data: localSale.data.split("T")[0],
-          vendedor_id: getSellerId(localSale.vendedor_id, localSale.vendedor_nome),
-          aparelho: localSale.aparelho,
-          cor: localSale.cor,
-          condicao: localSale.condicao,
-          imei: localSale.imei,
-          fornecedor: localSale.fornecedor,
-          valor_compra: toNumber(localSale.valor_compra),
-          comprador: localSale.comprador,
-          numero_telefone: localSale.numero_telefone,
-          aparelho_recebido: localSale.aparelho_recebido,
-          observacao: localSale.observacao || "",
-          valor_recebido: toNumber(localSale.valor_recebido),
-          preco_vista: toNumber(localSale.preco_vista),
-          preco_cartao: toNumber(localSale.preco_cartao),
-          valor_entrega: toNumber(localSale.valor_entrega),
-          valor_capa_pelicula: toNumber(localSale.valor_capa_pelicula),
-          valor_total_venda: toNumber(localSale.valor_total_venda),
-        });
-        setFetching(false);
-        return;
-      }
-
       try {
         setFetching(true);
         const sale = await sellService.getSaleById(id);
@@ -163,7 +136,7 @@ const AddEditSale = () => {
       }
     };
     fetchSale();
-  }, [id, isEditing, form, getSellerId, localSale, navigate]);
+  }, [id, isEditing, form, getSellerId, navigate]);
 
   const onSubmit = async (data: SaleFormData) => {
     try {
@@ -174,11 +147,7 @@ const AddEditSale = () => {
       };
 
       if (isEditing && id) {
-        if (localSale) {
-          Object.assign(localSale, salePayload);
-        } else {
-          await sellService.updateSale(id, salePayload);
-        }
+        await sellService.updateSale(id, salePayload);
         toast.success("Venda atualizada!", {
           description: `Venda de ${data.aparelho} foi atualizada.`,
         });

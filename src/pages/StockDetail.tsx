@@ -9,7 +9,6 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Edit, Loader2, Package } from "lucide-react";
-import { stockDevices } from "@/data/mockData";
 import { useCallback, useEffect, useState } from "react";
 import stockService, { StockItem } from "@/services/stockServices";
 import { toast } from "sonner";

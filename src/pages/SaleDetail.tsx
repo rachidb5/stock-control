@@ -4,14 +4,12 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Edit, ShoppingCart, User, DollarSign, CheckCircle2, XCircle, Loader2, Store } from "lucide-react";
-import { soldDevices } from "@/data/mockData";
 import sellService, { SoldDevice } from "@/services/sellService";
 import { toast } from "sonner";
 
 const SaleDetail = () => {
   const navigate = useNavigate();
   const { id } = useParams();
-  const localSale = id ? soldDevices.find((sale) => sale.id === id) : null;
   const [device, setDevice] = useState<SoldDevice | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -22,12 +20,6 @@ const SaleDetail = () => {
     }
 
     const fetchSale = async () => {
-      if (localSale) {
-        setDevice(localSale);
-        setLoading(false);
-        return;
-      }
-
       try {
         setLoading(true);
         const data = await sellService.getSaleById(id);
@@ -40,7 +32,7 @@ const SaleDetail = () => {
       }
     };
     fetchSale();
-  }, [id, localSale, navigate]);
+  }, [id, navigate]);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("pt-BR", {

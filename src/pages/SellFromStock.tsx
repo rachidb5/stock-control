@@ -31,9 +31,9 @@ import {
 import { ArrowLeft, Package, User, DollarSign, Loader2 } from "lucide-react";
 import { masks, validators } from "@/hooks/use-masks";
 import { useEffect, useMemo, useState } from "react";
+import clientService, { Client } from "@/services/clientService";
 import sellService from "@/services/sellService";
 import stockService, { StockItem } from "@/services/stockServices";
-import { useClientStore } from "@/stores/useClientStore";
 import { selectCurrentUser, useSessionStore } from "@/stores/useSessionStore";
 import { toast } from "sonner";
 
@@ -78,7 +78,7 @@ const SellFromStock = () => {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [device, setDevice] = useState<StockItem | null>(null);
-  const clients = useClientStore((state) => state.clients);
+  const [clients, setClients] = useState<Client[]>([]);
   const currentUser = useSessionStore(selectCurrentUser);
   const users = useSessionStore((state) => state.users);
   const sellers = useMemo(
@@ -91,11 +91,15 @@ const SellFromStock = () => {
   useEffect(() => {
     if (!id) return;
 
-    const fetchItem = async () => {
+    const fetchData = async () => {
       try {
         setLoading(true);
-        const response = await stockService.getStockById(id);
-        setDevice(response);
+        const [stockItem, clientsResponse] = await Promise.all([
+          stockService.getStockById(id),
+          clientService.getClients({ page: 1, limit: 50 }),
+        ]);
+        setDevice(stockItem);
+        setClients(clientsResponse.data);
       } catch (error) {
         console.error("Erro ao buscar estoque:", error);
         toast.error("Erro ao carregar estoque. Tente novamente.");
@@ -104,7 +108,7 @@ const SellFromStock = () => {
       }
     };
 
-    fetchItem();
+    fetchData();
   }, [id]);
 
   const form = useForm<SellFormData>({
@@ -217,7 +221,7 @@ const SellFromStock = () => {
   };
 
   const handleSelectClient = (clientId: string) => {
-    const client = clients.find((c) => c.id === clientId);
+    const client = clients.find((c) => String(c.id) === clientId);
     if (client) {
       form.setValue("comprador", client.nome);
       form.setValue("cpf_comprador", masks.cpf(client.cpf));
@@ -439,7 +443,7 @@ const SellFromStock = () => {
                       </SelectTrigger>
                       <SelectContent>
                         {clients.map((client) => (
-                          <SelectItem key={client.id} value={client.id}>
+                          <SelectItem key={client.id} value={String(client.id)}>
                             {client.nome} - {masks.cpf(client.cpf)}
                           </SelectItem>
                         ))}

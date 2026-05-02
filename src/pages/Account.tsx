@@ -12,6 +12,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import {
   formatDuration,
@@ -22,12 +29,14 @@ import {
 import { masks, validators } from "@/hooks/use-masks";
 import { Layout } from "@/components/Layout";
 import authService from "@/services/authService";
+import userService from "@/services/userService";
 import {
   hasFullAccess,
   roleDescriptions,
   roleLabels,
   selectCurrentUser,
   useSessionStore,
+  UserRole,
 } from "@/stores/useSessionStore";
 import { useTimeClockStore } from "@/stores/useTimeClockStore";
 import {
@@ -56,6 +65,7 @@ interface EditableUserData {
   address: string;
   city: string;
   company: string;
+  role: UserRole;
 }
 
 export default function Account() {
@@ -73,6 +83,7 @@ export default function Account() {
     address: currentUser.address,
     city: currentUser.city,
     company: currentUser.company,
+    role: currentUser.role,
   });
   const [isEditing, setIsEditing] = useState(false);
   const [errors, setErrors] = useState<ValidationErrors>({});
@@ -85,6 +96,7 @@ export default function Account() {
       address: currentUser.address,
       city: currentUser.city,
       company: currentUser.company,
+      role: currentUser.role,
     });
     setIsEditing(false);
     setErrors({});
@@ -129,7 +141,10 @@ export default function Account() {
     return Object.keys(nextErrors).length === 0;
   };
 
-  const handleSave = () => {
+  const isBackendUser = (id: string) =>
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+
+  const handleSave = async () => {
     if (!validateForm()) {
       toast({
         title: "Erro de validação",
@@ -139,6 +154,27 @@ export default function Account() {
       return;
     }
 
+    if (isBackendUser(currentUser.id)) {
+      try {
+        await userService.updateUser(currentUser.id, {
+          username: userData.name,
+          email: userData.email,
+          phone: userData.phone.replace(/\D/g, ""),
+          role: userData.role,
+        });
+      } catch (error) {
+        toast({
+          title: "Erro ao atualizar usuÃ¡rio",
+          description:
+            error instanceof Error
+              ? error.message
+              : "NÃ£o foi possÃ­vel salvar as alteraÃ§Ãµes na API.",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
     updateCurrentUser({
       name: userData.name,
       email: userData.email,
@@ -146,6 +182,7 @@ export default function Account() {
       address: userData.address,
       city: userData.city,
       company: userData.company,
+      role: userData.role,
     });
 
     setIsEditing(false);
@@ -275,6 +312,31 @@ export default function Account() {
                   </Label>
                   <Input id="employeeId" value={currentUser.employeeId} disabled />
                 </div>
+
+                {hasFullAccess(currentUser) && (
+                  <div className="space-y-2">
+                    <Label htmlFor="role" className="flex items-center gap-2">
+                      <CreditCard className="h-4 w-4 text-muted-foreground" />
+                      Perfil de acesso
+                    </Label>
+                    <Select
+                      value={userData.role}
+                      onValueChange={(value) =>
+                        handleInputChange("role", value as UserRole)
+                      }
+                      disabled={!isEditing}
+                    >
+                      <SelectTrigger id="role">
+                        <SelectValue placeholder="Selecione o perfil" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="vendedor">Vendedor</SelectItem>
+                        <SelectItem value="gestor">Gestor</SelectItem>
+                        <SelectItem value="admin">Admin</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
 
                 <div className="space-y-2">
                   <Label htmlFor="email" className="flex items-center gap-2">
