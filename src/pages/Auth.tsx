@@ -46,6 +46,9 @@ const Auth = () => {
   const { toast } = useToast();
   const users = useSessionStore((state) => state.users);
   const setCurrentUser = useSessionStore((state) => state.setCurrentUser);
+  const setAuthenticatedUser = useSessionStore(
+    (state) => state.setAuthenticatedUser,
+  );
 
   const loginForm = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
@@ -58,14 +61,15 @@ const Auth = () => {
   const onLogin = async (data: LoginFormData) => {
     try {
       const response: any = await authService.login(data);
+      const backendUser = response?.user;
       const matchingUser = users.find(
-        (user) => user.email.toLowerCase() === data.email.toLowerCase(),
+        (user) =>
+          user.email.toLowerCase() ===
+          (backendUser?.email ?? data.email).toLowerCase(),
       );
-      const token = response?.access_token ?? response?.accessToken ?? "local-demo-token";
-
-      localStorage.setItem("accessToken", token);
-
-      if (matchingUser) {
+      if (backendUser) {
+        setAuthenticatedUser(backendUser);
+      } else if (matchingUser) {
         setCurrentUser(matchingUser.id);
       }
 

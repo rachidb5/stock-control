@@ -1,10 +1,6 @@
-import api from "./api";
+import api, { clearAuthTokens, setAccessToken } from "./api";
 import { requestData } from "./serviceUtils";
 import type { UserAccessLevel } from "./userService";
-
-/* =======================
- * Interfaces
- * ======================= */
 
 export interface LoginPayload {
   email?: string;
@@ -28,32 +24,33 @@ export interface AuthUser {
 export interface AuthResponse {
   access_token?: string;
   accessToken?: string;
+  expires_in?: string;
   user?: AuthUser;
 }
 
-/* =======================
- * Auth Service
- * ======================= */
-
 export const authService = {
   login: async (data: LoginPayload): Promise<AuthResponse> => {
-    return requestData(
+    const response = await requestData(
       api.post<AuthResponse>("/auth/login", data),
-      "Não foi possível realizar o login.",
+      "Nao foi possivel realizar o login.",
     );
+    setAccessToken(response.access_token ?? response.accessToken);
+    return response;
   },
 
   register: async (data: RegisterPayload): Promise<AuthResponse> => {
-    return requestData(
+    const response = await requestData(
       api.post<AuthResponse>("/auth/register", data),
-      "Não foi possível criar o usuário.",
+      "Nao foi possivel criar o usuario.",
     );
+    setAccessToken(response.access_token ?? response.accessToken);
+    return response;
   },
 
   me: async (): Promise<AuthUser> => {
     return requestData(
       api.get<AuthUser>("/auth/me"),
-      "Não foi possível buscar o usuário autenticado.",
+      "Nao foi possivel buscar o usuario autenticado.",
     );
   },
 
@@ -61,10 +58,12 @@ export const authService = {
     try {
       await requestData(
         api.post<void>("/auth/logout"),
-        "Não foi possível encerrar a sessão.",
+        "Nao foi possivel encerrar a sessao.",
       );
+    } catch {
+      // Mesmo se o access token expirou, limpamos a sessao local e o cookie.
     } finally {
-      localStorage.removeItem("accessToken");
+      clearAuthTokens();
     }
   },
 };

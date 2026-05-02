@@ -1,47 +1,116 @@
-import axios from 'axios';
+import axios, {
+  AxiosError,
+  AxiosRequestConfig,
+  InternalAxiosRequestConfig,
+} from "axios";
+
+const baseURL = import.meta.env.VITE_API_URL || "https://estoque-api.fly.dev";
+let accessToken: string | null = null;
+let refreshRequest: Promise<string | null> | null = null;
+
+interface RetriableAxiosRequestConfig extends AxiosRequestConfig {
+  _retry?: boolean;
+}
+
+interface RefreshResponse {
+  access_token?: string;
+  accessToken?: string;
+}
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'https://estoque-api.fly.dev',
-  //  baseURL: 'http://localhost:3000',
+  baseURL,
+  //  baseURL: "http://localhost:3000",
+  withCredentials: true,
   headers: {
-    'Content-Type': 'application/json',
+    "Content-Type": "application/json",
   },
 });
 
-// Request interceptor para adicionar token de autenticação
+export const setAccessToken = (token?: string | null) => {
+  accessToken = token ?? null;
+  localStorage.removeItem("accessToken");
+};
+
+export const clearAuthTokens = () => {
+  accessToken = null;
+  localStorage.removeItem("accessToken");
+};
+
+const isAuthRoute = (url?: string) =>
+  Boolean(
+    url?.includes("/auth/login") ||
+      url?.includes("/auth/register") ||
+      url?.includes("/auth/refresh"),
+  );
+
+const refreshAccessToken = async () => {
+  if (!refreshRequest) {
+    refreshRequest = axios
+      .post<RefreshResponse>(
+        `${baseURL}/auth/refresh`,
+        {},
+        {
+          withCredentials: true,
+          headers: { "Content-Type": "application/json" },
+        },
+      )
+      .then((response) => {
+        const token = response.data.access_token ?? response.data.accessToken;
+        setAccessToken(token);
+        return token ?? null;
+      })
+      .catch(() => {
+        clearAuthTokens();
+        return null;
+      })
+      .finally(() => {
+        refreshRequest = null;
+      });
+  }
+
+  return refreshRequest;
+};
+
+const redirectToAuth = () => {
+  if (window.location.pathname !== "/auth") {
+    window.location.href = "/auth";
+  }
+};
+
 api.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('accessToken');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+  (config: InternalAxiosRequestConfig) => {
+    if (accessToken) {
+      config.headers.Authorization = `Bearer ${accessToken}`;
     }
     return config;
   },
-  (error) => {
-    return Promise.reject(error);
-  }
+  (error) => Promise.reject(error),
 );
 
-// Response interceptor para tratamento de erros
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
+  async (error: AxiosError) => {
     const status = error.response?.status;
-    const url = error.config?.url;
+    const originalRequest = error.config as RetriableAxiosRequestConfig;
+    const url = originalRequest?.url;
 
-    const isAuthRoute =
-      url?.includes("/auth/login") || url?.includes("/auth/register");
+    if (status === 401 && !isAuthRoute(url) && !originalRequest?._retry) {
+      originalRequest._retry = true;
+      const token = await refreshAccessToken();
 
-    if (status === 401 && !isAuthRoute) {
-      localStorage.removeItem("accessToken");
-      if (window.location.pathname !== "/auth") {
-        window.location.href = "/auth";
+      if (token) {
+        originalRequest.headers = {
+          ...originalRequest.headers,
+          Authorization: `Bearer ${token}`,
+        };
+        return api(originalRequest);
       }
+
+      redirectToAuth();
     }
 
     return Promise.reject(error);
-  }
+  },
 );
-
 
 export default api;

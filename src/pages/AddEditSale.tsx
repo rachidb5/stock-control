@@ -19,7 +19,11 @@ import { Switch } from "@/components/ui/switch";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { soldDevices } from "@/data/mockData";
 import sellService from "@/services/sellService";
-import { selectCurrentUser, useSessionStore } from "@/stores/useSessionStore";
+import {
+  hasFullAccess,
+  selectCurrentUser,
+  useSessionStore,
+} from "@/stores/useSessionStore";
 import { toast } from "sonner";
 
 const saleSchema = z.object({
@@ -52,6 +56,7 @@ const toNumber = (value: unknown) => {
 const AddEditSale = () => {
   const navigate = useNavigate();
   const currentUser = useSessionStore(selectCurrentUser);
+  const fullAccess = hasFullAccess(currentUser);
   const users = useSessionStore((state) => state.users);
   const { id } = useParams();
   const isEditing = !!id;
@@ -59,8 +64,8 @@ const AddEditSale = () => {
   const [fetching, setFetching] = useState(isEditing);
   const [submitting, setSubmitting] = useState(false);
   const sellers = useMemo(
-    () => users,
-    [users],
+    () => (fullAccess ? users : [currentUser]),
+    [currentUser, fullAccess, users],
   );
   const getSellerName = useCallback(
     (sellerId: string) =>
@@ -255,7 +260,11 @@ const AddEditSale = () => {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Vendedor</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
+                        <Select
+                          onValueChange={field.onChange}
+                          value={field.value}
+                          disabled={!fullAccess}
+                        >
                           <FormControl>
                             <SelectTrigger>
                               <SelectValue placeholder="Selecione o vendedor" />

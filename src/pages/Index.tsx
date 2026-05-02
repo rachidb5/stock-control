@@ -1,6 +1,10 @@
 import { useEffect, useState } from "react";
 import { Layout } from "@/components/Layout";
-import { selectCurrentUser, useSessionStore } from "@/stores/useSessionStore";
+import {
+  hasFullAccess,
+  selectCurrentUser,
+  useSessionStore,
+} from "@/stores/useSessionStore";
 import { ArrowRight, Package, ShoppingCart } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
@@ -21,6 +25,7 @@ function getTimeGreeting(referenceDate = new Date()) {
 export default function Index() {
   const navigate = useNavigate();
   const currentUser = useSessionStore(selectCurrentUser);
+  const fullAccess = hasFullAccess(currentUser);
   const firstName = currentUser.name.trim().split(" ")[0] ?? currentUser.name;
   const [timeGreeting, setTimeGreeting] = useState(() => getTimeGreeting());
 
@@ -45,7 +50,7 @@ export default function Index() {
             </p>
           </div>
 
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className={`grid gap-4 ${fullAccess ? "md:grid-cols-2" : ""}`}>
             <button
               type="button"
               onClick={() => navigate("/sale/add")}
@@ -73,6 +78,7 @@ export default function Index() {
               </div>
             </button>
 
+            {fullAccess && (
             <button
               type="button"
               onClick={() => navigate("/produto")}
@@ -99,6 +105,7 @@ export default function Index() {
                 <ArrowRight className="h-4 w-4" />
               </div>
             </button>
+            )}
           </div>
         </div>
       </div>

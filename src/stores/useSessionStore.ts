@@ -17,6 +17,14 @@ export interface AppUser {
 }
 
 export type CreateUserInput = Omit<AppUser, "id"> & { id?: string };
+export type AuthenticatedUserInput = {
+  id: string;
+  username?: string;
+  name?: string;
+  email: string;
+  phone?: string;
+  role?: UserRole;
+};
 
 interface SessionState {
   users: AppUser[];
@@ -24,6 +32,7 @@ interface SessionState {
   setCurrentUser: (userId: string) => void;
   updateCurrentUser: (data: Partial<Omit<AppUser, "id">>) => void;
   addUser: (data: CreateUserInput) => string;
+  setAuthenticatedUser: (data: AuthenticatedUserInput) => string;
   resetSession: () => void;
 }
 
@@ -43,8 +52,10 @@ export const roleDescriptions: Record<UserRole, string> = {
 
 export const isUserAdmin = (user: Pick<AppUser, "role">) => user.role === "admin";
 
-export const hasCommercialManagementAccess = (user: Pick<AppUser, "role">) =>
+export const hasFullAccess = (user: Pick<AppUser, "role">) =>
   user.role === "gestor" || user.role === "admin";
+
+export const hasCommercialManagementAccess = hasFullAccess;
 
 export const defaultUsers: AppUser[] = [
   {
@@ -185,6 +196,57 @@ export const useSessionStore = create<SessionState>()(
         }));
 
         return newId;
+      },
+      setAuthenticatedUser: (data) => {
+        const role = normalizeRole(data.role);
+        let resolvedId = data.id;
+
+        set((state) => {
+          const existingIndex = state.users.findIndex(
+            (user) =>
+              user.id === data.id ||
+              user.email.toLowerCase() === data.email.toLowerCase(),
+          );
+          const existingUser =
+            existingIndex >= 0 ? state.users[existingIndex] : undefined;
+          resolvedId = existingUser?.id ?? data.id;
+          const nextUser: AppUser = {
+            id: resolvedId,
+            employeeId:
+              existingUser?.employeeId ??
+              (role === "admin"
+                ? "ADM-0001"
+                : role === "gestor"
+                ? "GES-0001"
+                : "VEN-0001"),
+            name:
+              data.name ??
+              data.username ??
+              existingUser?.name ??
+              data.email.split("@")[0],
+            email: data.email,
+            phone: data.phone ?? existingUser?.phone ?? "",
+            address: existingUser?.address ?? "",
+            city: existingUser?.city ?? "",
+            company: existingUser?.company ?? "StockControl Mobile",
+            role,
+            monthlyGoal: existingUser?.monthlyGoal ?? 45000,
+          };
+
+          const users =
+            existingIndex >= 0
+              ? state.users.map((user, index) =>
+                  index === existingIndex ? nextUser : user,
+                )
+              : [...state.users, nextUser];
+
+          return {
+            users,
+            currentUserId: resolvedId,
+          };
+        });
+
+        return resolvedId;
       },
       resetSession: () => set(getDefaultState()),
     }),

@@ -13,7 +13,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useSessionStore } from "@/stores/useSessionStore";
+import {
+  hasFullAccess,
+  selectCurrentUser,
+  useSessionStore,
+} from "@/stores/useSessionStore";
 import { Plus, Package, Search, ShoppingCart, X } from "lucide-react";
 
 const validTabs = new Set(["estoque", "vendas"]);
@@ -21,10 +25,17 @@ const validTabs = new Set(["estoque", "vendas"]);
 export default function Products() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
+  const currentUser = useSessionStore(selectCurrentUser);
+  const fullAccess = hasFullAccess(currentUser);
+  const tabParam = searchParams.get("tab");
+  const queryString = searchParams.toString();
   const activeTab = useMemo(() => {
-    const tab = searchParams.get("tab") ?? "estoque";
+    const tab = tabParam ?? "estoque";
+    if (!fullAccess) {
+      return "vendas";
+    }
     return validTabs.has(tab) ? tab : "estoque";
-  }, [searchParams]);
+  }, [fullAccess, tabParam]);
   const search = searchParams.get("busca") ?? "";
   const observation = searchParams.get("observacao") ?? "all";
   const status = searchParams.get("status") ?? "all";
@@ -34,7 +45,8 @@ export default function Products() {
   const endDate = searchParams.get("fim") ?? "";
   const page = Math.max(Number(searchParams.get("pagina") ?? 1) || 1, 1);
   const users = useSessionStore((state) => state.users);
-  const sellers = users;
+  const sellers = fullAccess ? users : [currentUser];
+  const effectiveSeller = fullAccess ? seller : currentUser.id;
   const [draftFilters, setDraftFilters] = useState({
     search,
     observation,
@@ -46,6 +58,15 @@ export default function Products() {
   });
 
   useEffect(() => {
+    if (!fullAccess && tabParam !== "vendas") {
+      const next = new URLSearchParams(searchParams);
+      next.set("tab", "vendas");
+      next.delete("observacao");
+      next.delete("pagina");
+      setSearchParams(next, { replace: true });
+      return;
+    }
+
     setDraftFilters({
       search,
       observation,
@@ -55,9 +76,25 @@ export default function Products() {
       startDate,
       endDate,
     });
-  }, [search, observation, status, condition, seller, startDate, endDate]);
+  }, [
+    fullAccess,
+    search,
+    observation,
+    status,
+    condition,
+    seller,
+    startDate,
+    endDate,
+    queryString,
+    setSearchParams,
+    tabParam,
+  ]);
 
   const handleTabChange = (tab: string) => {
+    if (!fullAccess && tab !== "vendas") {
+      return;
+    }
+
     const next = new URLSearchParams(searchParams);
     next.set("tab", tab);
     next.delete("pagina");
@@ -151,7 +188,7 @@ export default function Products() {
             />
           </div>
 
-          {activeTab === "estoque" ? (
+          {activeTab === "estoque" && fullAccess ? (
             <Select
               value={draftFilters.observation}
               onValueChange={(value) => updateDraftFilter("observation", value)}
@@ -205,22 +242,24 @@ export default function Products() {
                   <SelectItem value="Recondicionado">Recondicionado</SelectItem>
                 </SelectContent>
               </Select>
-              <Select
-                value={draftFilters.seller}
-                onValueChange={(value) => updateDraftFilter("seller", value)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Vendedor" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos os vendedores</SelectItem>
-                  {sellers.map((seller) => (
-                    <SelectItem key={seller.id} value={seller.id}>
-                      {seller.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              {fullAccess && (
+                <Select
+                  value={draftFilters.seller}
+                  onValueChange={(value) => updateDraftFilter("seller", value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Vendedor" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos os vendedores</SelectItem>
+                    {sellers.map((seller) => (
+                      <SelectItem key={seller.id} value={seller.id}>
+                        {seller.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
             </>
           )}
 
@@ -240,35 +279,39 @@ export default function Products() {
         </div>
 
         <Tabs value={activeTab} onValueChange={handleTabChange}>
-          <TabsList className="grid w-full grid-cols-2 sm:max-w-md">
-            <TabsTrigger value="estoque" className="gap-2">
-              <Package className="h-4 w-4" />
-              Estoque
-            </TabsTrigger>
+          <TabsList className={`grid w-full sm:max-w-md ${fullAccess ? "grid-cols-2" : "grid-cols-1"}`}>
+            {fullAccess && (
+              <TabsTrigger value="estoque" className="gap-2">
+                <Package className="h-4 w-4" />
+                Estoque
+              </TabsTrigger>
+            )}
             <TabsTrigger value="vendas" className="gap-2">
               <ShoppingCart className="h-4 w-4" />
               Vendas
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="estoque" className="mt-6">
-            <StockTable
-              search={search}
-              observation={observation}
-              hideFilters
-              page={page}
-              onPageChange={handlePageChange}
-            />
-          </TabsContent>
+          {fullAccess && (
+            <TabsContent value="estoque" className="mt-6">
+              <StockTable
+                search={search}
+                observation={observation}
+                hideFilters
+                page={page}
+                onPageChange={handlePageChange}
+              />
+            </TabsContent>
+          )}
           <TabsContent value="vendas" className="mt-6">
             <SalesTable
-              showSeller
+              showSeller={fullAccess}
               useApi
               hideFilters
               search={search}
               status={status}
               condition={condition}
-              seller={seller}
+              seller={effectiveSeller}
               startDate={startDate}
               endDate={endDate}
               page={page}

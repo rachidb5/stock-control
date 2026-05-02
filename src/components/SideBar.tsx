@@ -10,9 +10,22 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { BarChart3, Factory, House, Package, User, UserPlus, Users } from "lucide-react";
+import {
+  BarChart3,
+  Factory,
+  House,
+  Package,
+  ShoppingCart,
+  User,
+  UserPlus,
+  Users,
+} from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { isUserAdmin, selectCurrentUser, useSessionStore } from "@/stores/useSessionStore";
+import {
+  hasFullAccess,
+  selectCurrentUser,
+  useSessionStore,
+} from "@/stores/useSessionStore";
 
 export function AppSidebar() {
   const location = useLocation();
@@ -20,38 +33,76 @@ export function AppSidebar() {
   const { state, setOpenMobile } = useSidebar();
   const isCollapsed = state === "collapsed";
   const currentUser = useSessionStore(selectCurrentUser);
+  const fullAccess = hasFullAccess(currentUser);
 
   const menuSections = [
-    {
-      label: "Operacao",
-      items: [
-        { title: "Home", url: "/", icon: House },
-        { title: "Produtos", url: "/produtos", icon: Package },
-        { title: "Painel Comercial", url: "/painel-comercial", icon: BarChart3 },
-      ],
-    },
-    {
-      label: "Cadastros",
-      items: [
-        { title: "Clientes", url: "/clients", icon: Users },
-        { title: "Fornecedores", url: "/fornecedores", icon: Factory },
-        ...(isUserAdmin(currentUser)
-          ? [{ title: "Usuarios", url: "/conta/criar", icon: UserPlus }]
-          : []),
-      ],
-    },
+    fullAccess
+      ? {
+          label: "Operacao",
+          items: [
+            { title: "Home", url: "/", icon: House },
+            { title: "Produtos", url: "/produtos", icon: Package },
+            {
+              title: "Painel Comercial",
+              url: "/painel-comercial",
+              icon: BarChart3,
+            },
+          ],
+        }
+      : {
+          label: "Vendas",
+          items: [
+            {
+              title: "Minhas vendas",
+              url: "/produtos?tab=vendas",
+              icon: ShoppingCart,
+            },
+            {
+              title: "Registrar venda",
+              url: "/sale/add",
+              icon: ShoppingCart,
+            },
+          ],
+        },
+    ...(fullAccess
+      ? [
+          {
+            label: "Cadastros",
+            items: [
+              { title: "Clientes", url: "/clients", icon: Users },
+              { title: "Fornecedores", url: "/fornecedores", icon: Factory },
+              { title: "Usuarios", url: "/conta/criar", icon: UserPlus },
+            ],
+          },
+        ]
+      : []),
     {
       label: "Conta",
       items: [{ title: "Minha conta", url: "/conta", icon: User }],
     },
   ];
 
-  const isActive = (path: string) =>
-    location.pathname === path ||
-    (path === "/produtos" &&
-      (location.pathname.startsWith("/produto") ||
+  const isActive = (path: string) => {
+    const pathOnly = path.split("?")[0];
+
+    if (location.pathname === pathOnly) {
+      return true;
+    }
+
+    if (fullAccess && pathOnly === "/produtos") {
+      return (
+        location.pathname.startsWith("/produto") ||
         location.pathname.startsWith("/sale") ||
-        location.pathname.startsWith("/sell")));
+        location.pathname.startsWith("/sell")
+      );
+    }
+
+    if (!fullAccess && pathOnly === "/sale/add") {
+      return location.pathname.startsWith("/sale");
+    }
+
+    return false;
+  };
 
   const navigateTo = (url: string) => {
     navigate(url);

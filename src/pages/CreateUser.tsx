@@ -33,7 +33,7 @@ import {
 import { masks, validators } from "@/hooks/use-masks";
 import { Layout } from "@/components/Layout";
 import {
-  isUserAdmin,
+  hasFullAccess,
   roleDescriptions,
   selectCurrentUser,
   useSessionStore,
@@ -188,14 +188,14 @@ export default function CreateUser() {
     }
   };
 
-  if (!isUserAdmin(currentUser)) {
+  if (!hasFullAccess(currentUser)) {
     return (
       <Layout>
         <Card className="max-w-2xl">
           <CardHeader>
             <CardTitle>Acesso restrito</CardTitle>
             <CardDescription>
-              Apenas administradores podem cadastrar e configurar usuários.
+              Apenas gestores e administradores podem cadastrar e configurar usuários.
             </CardDescription>
           </CardHeader>
           <CardContent>

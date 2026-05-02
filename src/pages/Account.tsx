@@ -21,8 +21,9 @@ import {
 } from "@/lib/timeClock";
 import { masks, validators } from "@/hooks/use-masks";
 import { Layout } from "@/components/Layout";
+import authService from "@/services/authService";
 import {
-  isUserAdmin,
+  hasFullAccess,
   roleDescriptions,
   roleLabels,
   selectCurrentUser,
@@ -154,8 +155,8 @@ export default function Account() {
     });
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem("accessToken");
+  const handleLogout = async () => {
+    await authService.logout();
     toast({
       title: "Logout realizado",
       description: "Você foi desconectado com sucesso.",
@@ -221,7 +222,7 @@ export default function Account() {
                 </p>
               </div>
 
-              {isUserAdmin(currentUser) && (
+              {hasFullAccess(currentUser) && (
                 <Button className="w-full" onClick={() => navigate("/conta/criar")}>
                   <UserPlus className="mr-2 h-4 w-4" />
                   Criar novo usuário
@@ -419,7 +420,7 @@ export default function Account() {
               </CardContent>
             </Card>
 
-            {isUserAdmin(currentUser) && (
+            {hasFullAccess(currentUser) && (
               <Card>
                 <CardHeader>
                   <CardTitle>Usuários cadastrados</CardTitle>
