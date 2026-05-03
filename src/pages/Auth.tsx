@@ -18,22 +18,27 @@ import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { LogIn, UserPlus } from "lucide-react";
 import authService from "@/services/authService";
+import userService from "@/services/userService";
 import { useSessionStore } from "@/stores/useSessionStore";
+import { masks, validators } from "@/hooks/use-masks";
 
 const loginSchema = z.object({
-  email: z.string().email("Email inválido"),
-  password: z.string().min(6, "Senha deve ter no mínimo 6 caracteres"),
+  email: z.string().email("Email invalido"),
+  password: z.string().min(6, "Senha deve ter no minimo 6 caracteres"),
 });
 
 const signupSchema = z
   .object({
-    name: z.string().min(2, "Nome deve ter no mínimo 2 caracteres"),
-    email: z.string().email("Email inválido"),
-    password: z.string().min(6, "Senha deve ter no mínimo 6 caracteres"),
+    name: z.string().min(2, "Nome deve ter no minimo 2 caracteres"),
+    email: z.string().email("Email invalido"),
+    phone: z
+      .string()
+      .refine((value) => validators.phone(value), "Telefone invalido"),
+    password: z.string().min(6, "Senha deve ter no minimo 6 caracteres"),
     confirmPassword: z.string(),
   })
   .refine((data) => data.password === data.confirmPassword, {
-    message: "As senhas não coincidem",
+    message: "As senhas nao coincidem",
     path: ["confirmPassword"],
   });
 
@@ -42,10 +47,10 @@ type SignupFormData = z.infer<typeof signupSchema>;
 
 const Auth = () => {
   const [activeTab, setActiveTab] = useState("login");
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
-  const users = useSessionStore((state) => state.users);
-  const setCurrentUser = useSessionStore((state) => state.setCurrentUser);
+  const setUsers = useSessionStore((state) => state.setUsers);
   const setAuthenticatedUser = useSessionStore(
     (state) => state.setAuthenticatedUser,
   );
@@ -58,68 +63,95 @@ const Auth = () => {
     resolver: zodResolver(signupSchema),
   });
 
+  const syncManagedUsers = async (role?: string) => {
+    if (role !== "admin" && role !== "gestor") {
+      return;
+    }
+
+    setUsers(await userService.getUsers());
+  };
+
   const onLogin = async (data: LoginFormData) => {
+    setIsSubmitting(true);
+
     try {
       const response: any = await authService.login(data);
       const backendUser = response?.user;
-      const matchingUser = users.find(
-        (user) =>
-          user.email.toLowerCase() ===
-          (backendUser?.email ?? data.email).toLowerCase(),
-      );
+
       if (backendUser) {
         setAuthenticatedUser(backendUser);
-      } else if (matchingUser) {
-        setCurrentUser(matchingUser.id);
+        await syncManagedUsers(backendUser.role);
+        setAuthenticatedUser(backendUser);
       }
 
       toast({
         title: "Login realizado com sucesso",
-        description: matchingUser
-          ? `Bem-vindo de volta, ${matchingUser.name.split(" ")[0]}!`
+        description: backendUser?.username
+          ? `Bem-vindo de volta, ${backendUser.username.split(" ")[0]}!`
           : "Bem-vindo!",
       });
 
       navigate("/");
     } catch (error: any) {
-      console.log(error)
       toast({
         variant: "destructive",
         title: "Erro ao fazer login",
         description:
           error?.message || "Verifique suas credenciais e tente novamente",
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  const onSignup = (data: SignupFormData) => {
-    console.log("Signup data:", data);
-    toast({
-      title: "Cadastro simulado",
-      description: "Backend não implementado ainda",
-    });
-    // Simular cadastro bem-sucedido
-    setActiveTab("login");
-    signupForm.reset();
+  const onSignup = async (data: SignupFormData) => {
+    setIsSubmitting(true);
+
+    try {
+      const response = await authService.register({
+        username: data.name,
+        email: data.email,
+        phone: data.phone.replace(/\D/g, ""),
+        password: data.password,
+      });
+
+      if (response.user) {
+        setAuthenticatedUser(response.user);
+      }
+
+      toast({
+        title: "Cadastro realizado",
+        description: "Sua conta foi criada com sucesso.",
+      });
+      navigate("/");
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Erro ao criar conta",
+        description: error?.message || "Nao foi possivel criar sua conta.",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md border-border/70 shadow-lg">
         <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold text-center">
+          <CardTitle className="text-center text-2xl font-bold">
             Controle de Estoque
           </CardTitle>
           <CardDescription className="text-center">
-            Faça login ou crie uma conta para continuar
+            Faca login ou crie uma conta para continuar
           </CardDescription>
         </CardHeader>
         <CardContent>
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            {/* <TabsList className="grid w-full grid-cols-2 mb-4">
+            <TabsList className="mb-4 grid w-full grid-cols-2">
               <TabsTrigger value="login">Login</TabsTrigger>
               <TabsTrigger value="signup">Cadastro</TabsTrigger>
-            </TabsList> */}
+            </TabsList>
 
             <TabsContent value="login">
               <form
@@ -146,7 +178,7 @@ const Auth = () => {
                   <Input
                     id="login-password"
                     type="password"
-                    placeholder="••••••"
+                    placeholder="******"
                     {...loginForm.register("password")}
                   />
                   {loginForm.formState.errors.password && (
@@ -156,13 +188,15 @@ const Auth = () => {
                   )}
                 </div>
 
-                <Button type="submit" className="w-full" size="lg">
+                <Button
+                  type="submit"
+                  className="w-full"
+                  size="lg"
+                  disabled={isSubmitting}
+                >
                   <LogIn className="mr-2 h-4 w-4" />
-                  Entrar
+                  {isSubmitting ? "Entrando..." : "Entrar"}
                 </Button>
-                <p className="text-center text-xs text-muted-foreground">
-                  Use um email da equipe local para carregar o perfil salvo.
-                </p>
               </form>
             </TabsContent>
 
@@ -202,11 +236,31 @@ const Auth = () => {
                 </div>
 
                 <div className="space-y-2">
+                  <Label htmlFor="signup-phone">Telefone</Label>
+                  <Input
+                    id="signup-phone"
+                    type="tel"
+                    placeholder="(00) 00000-0000"
+                    maxLength={15}
+                    {...signupForm.register("phone", {
+                      onChange: (event) => {
+                        event.target.value = masks.phone(event.target.value);
+                      },
+                    })}
+                  />
+                  {signupForm.formState.errors.phone && (
+                    <p className="text-sm text-destructive">
+                      {signupForm.formState.errors.phone.message}
+                    </p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
                   <Label htmlFor="signup-password">Senha</Label>
                   <Input
                     id="signup-password"
                     type="password"
-                    placeholder="••••••"
+                    placeholder="******"
                     {...signupForm.register("password")}
                   />
                   {signupForm.formState.errors.password && (
@@ -221,7 +275,7 @@ const Auth = () => {
                   <Input
                     id="signup-confirm"
                     type="password"
-                    placeholder="••••••"
+                    placeholder="******"
                     {...signupForm.register("confirmPassword")}
                   />
                   {signupForm.formState.errors.confirmPassword && (
@@ -231,9 +285,14 @@ const Auth = () => {
                   )}
                 </div>
 
-                <Button type="submit" className="w-full" size="lg">
+                <Button
+                  type="submit"
+                  className="w-full"
+                  size="lg"
+                  disabled={isSubmitting}
+                >
                   <UserPlus className="mr-2 h-4 w-4" />
-                  Criar Conta
+                  {isSubmitting ? "Criando..." : "Criar Conta"}
                 </Button>
               </form>
             </TabsContent>

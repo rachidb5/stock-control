@@ -18,18 +18,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import {
-  ArrowLeft,
-  Building,
-  CreditCard,
-  Mail,
-  MapPin,
-  Phone,
-  ShieldCheck,
-  Target,
-  User,
-  UserPlus,
-} from "lucide-react";
+import { ArrowLeft, Mail, Phone, ShieldCheck, User, UserPlus } from "lucide-react";
 import { masks, validators } from "@/hooks/use-masks";
 import { Layout } from "@/components/Layout";
 import {
@@ -43,12 +32,10 @@ import userService from "@/services/userService";
 
 interface ValidationErrors {
   name?: string;
-  employeeId?: string;
   email?: string;
   phone?: string;
   password?: string;
   confirmPassword?: string;
-  monthlyGoal?: string;
 }
 
 export default function CreateUser() {
@@ -56,18 +43,13 @@ export default function CreateUser() {
   const { toast } = useToast();
   const currentUser = useSessionStore(selectCurrentUser);
   const users = useSessionStore((state) => state.users);
-  const addUser = useSessionStore((state) => state.addUser);
+  const setUsers = useSessionStore((state) => state.setUsers);
 
   const [userData, setUserData] = useState({
     name: "",
-    employeeId: "",
     email: "",
     phone: "",
-    address: "",
-    city: "",
-    company: currentUser.company,
     role: "vendedor" as UserRole,
-    monthlyGoal: "45000",
     password: "",
     confirmPassword: "",
   });
@@ -75,14 +57,7 @@ export default function CreateUser() {
   const [isLoading, setIsLoading] = useState(false);
 
   const handleInputChange = (field: keyof typeof userData, value: string) => {
-    const maskMap: Partial<Record<keyof typeof userData, (current: string) => string>> = {
-      phone: masks.phone,
-    };
-    const nextValue = field === "employeeId"
-      ? value.toUpperCase().replace(/\s+/g, "-")
-      : maskMap[field]
-        ? maskMap[field]?.(value) ?? value
-        : value;
+    const nextValue = field === "phone" ? masks.phone(value) : value;
 
     setUserData((prev) => ({ ...prev, [field]: nextValue }));
 
@@ -95,27 +70,17 @@ export default function CreateUser() {
     const nextErrors: ValidationErrors = {};
 
     if (!userData.name.trim()) {
-      nextErrors.name = "Nome é obrigatório";
-    }
-
-    if (!userData.employeeId.trim()) {
-      nextErrors.employeeId = "Matrícula é obrigatória";
-    } else if (
-      users.some(
-        (user) => user.employeeId.toLowerCase() === userData.employeeId.toLowerCase(),
-      )
-    ) {
-      nextErrors.employeeId = "Esta matrícula já está em uso";
+      nextErrors.name = "Nome e obrigatorio";
     }
 
     if (!validators.email(userData.email)) {
-      nextErrors.email = "Email inválido";
+      nextErrors.email = "Email invalido";
     } else if (users.some((user) => user.email.toLowerCase() === userData.email.toLowerCase())) {
-      nextErrors.email = "Este email já está em uso";
+      nextErrors.email = "Este email ja esta em uso";
     }
 
     if (!validators.phone(userData.phone)) {
-      nextErrors.phone = "Telefone inválido (deve ter 11 dígitos)";
+      nextErrors.phone = "Telefone invalido (deve ter 11 digitos)";
     }
 
     if (!userData.password || userData.password.length < 6) {
@@ -123,11 +88,7 @@ export default function CreateUser() {
     }
 
     if (userData.password !== userData.confirmPassword) {
-      nextErrors.confirmPassword = "As senhas não coincidem";
-    }
-
-    if (!userData.monthlyGoal || Number(userData.monthlyGoal) <= 0) {
-      nextErrors.monthlyGoal = "Informe uma meta mensal válida";
+      nextErrors.confirmPassword = "As senhas nao coincidem";
     }
 
     setErrors(nextErrors);
@@ -137,7 +98,7 @@ export default function CreateUser() {
   const handleSubmit = async () => {
     if (!validateForm()) {
       toast({
-        title: "Erro de validação",
+        title: "Erro de validacao",
         description: "Corrija os campos destacados para continuar.",
         variant: "destructive",
       });
@@ -147,40 +108,28 @@ export default function CreateUser() {
     setIsLoading(true);
 
     try {
-      const createdUser = await userService.createUser({
+      await userService.createUser({
         username: userData.name,
         email: userData.email,
         phone: userData.phone.replace(/\D/g, ""),
         password: userData.password,
         role: userData.role,
       });
-
-      addUser({
-        id: createdUser.id,
-        name: userData.name,
-        employeeId: userData.employeeId,
-        email: userData.email,
-        phone: userData.phone,
-        address: userData.address,
-        city: userData.city,
-        company: userData.company,
-        role: userData.role,
-        monthlyGoal: Number(userData.monthlyGoal),
-      });
+      setUsers(await userService.getUsers());
 
       toast({
-        title: "Usuário criado",
-        description: `${userData.name} (${userData.employeeId}) agora faz parte da equipe.`,
+        title: "Usuario criado",
+        description: `${userData.name} agora faz parte da equipe.`,
       });
 
       navigate("/conta");
     } catch (error) {
       toast({
-        title: "Erro ao criar usuário",
+        title: "Erro ao criar usuario",
         description:
           error instanceof Error
             ? error.message
-            : "Ocorreu um erro ao salvar o novo usuário.",
+            : "Ocorreu um erro ao salvar o novo usuario.",
         variant: "destructive",
       });
     } finally {
@@ -195,7 +144,7 @@ export default function CreateUser() {
           <CardHeader>
             <CardTitle>Acesso restrito</CardTitle>
             <CardDescription>
-              Apenas gestores e administradores podem cadastrar e configurar usuários.
+              Apenas gestores e administradores podem cadastrar usuarios.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -217,9 +166,9 @@ export default function CreateUser() {
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div>
-            <h1 className="text-2xl font-bold sm:text-3xl">Criar Usuário</h1>
+            <h1 className="text-2xl font-bold sm:text-3xl">Criar Usuario</h1>
             <p className="text-muted-foreground">
-              Cadastre vendedores, gestores e administradores com matrícula e meta inicial.
+              Cadastre o acesso com os dados aceitos pela API.
             </p>
           </div>
         </div>
@@ -231,7 +180,7 @@ export default function CreateUser() {
               Novo membro da equipe
             </CardTitle>
             <CardDescription>
-              Preencha os dados de acesso e a identificação interna do usuário.
+              Preencha os dados de acesso e o perfil do usuario.
             </CardDescription>
           </CardHeader>
           <CardContent className="grid gap-4 md:grid-cols-2">
@@ -247,23 +196,6 @@ export default function CreateUser() {
                 className={errors.name ? "border-destructive" : ""}
               />
               {errors.name && <p className="text-sm text-destructive">{errors.name}</p>}
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="employeeId" className="flex items-center gap-2">
-                <CreditCard className="h-4 w-4 text-muted-foreground" />
-                Matrícula *
-              </Label>
-              <Input
-                id="employeeId"
-                value={userData.employeeId}
-                onChange={(event) => handleInputChange("employeeId", event.target.value)}
-                placeholder="VEN-1004"
-                className={errors.employeeId ? "border-destructive" : ""}
-              />
-              {errors.employeeId && (
-                <p className="text-sm text-destructive">{errors.employeeId}</p>
-              )}
             </div>
 
             <div className="space-y-2">
@@ -298,42 +230,6 @@ export default function CreateUser() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="company" className="flex items-center gap-2">
-                <Building className="h-4 w-4 text-muted-foreground" />
-                Empresa
-              </Label>
-              <Input
-                id="company"
-                value={userData.company}
-                onChange={(event) => handleInputChange("company", event.target.value)}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="city" className="flex items-center gap-2">
-                <MapPin className="h-4 w-4 text-muted-foreground" />
-                Cidade
-              </Label>
-              <Input
-                id="city"
-                value={userData.city}
-                onChange={(event) => handleInputChange("city", event.target.value)}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="address" className="flex items-center gap-2">
-                <MapPin className="h-4 w-4 text-muted-foreground" />
-                Endereço
-              </Label>
-              <Input
-                id="address"
-                value={userData.address}
-                onChange={(event) => handleInputChange("address", event.target.value)}
-              />
-            </div>
-
-            <div className="space-y-2">
               <Label htmlFor="role" className="flex items-center gap-2">
                 <ShieldCheck className="h-4 w-4 text-muted-foreground" />
                 Perfil de acesso *
@@ -349,24 +245,6 @@ export default function CreateUser() {
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground">{roleDescriptions[userData.role]}</p>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="monthlyGoal" className="flex items-center gap-2">
-                <Target className="h-4 w-4 text-muted-foreground" />
-                Meta mensal *
-              </Label>
-              <Input
-                id="monthlyGoal"
-                type="number"
-                min="0"
-                value={userData.monthlyGoal}
-                onChange={(event) => handleInputChange("monthlyGoal", event.target.value)}
-                className={errors.monthlyGoal ? "border-destructive" : ""}
-              />
-              {errors.monthlyGoal && (
-                <p className="text-sm text-destructive">{errors.monthlyGoal}</p>
-              )}
             </div>
 
             <div className="space-y-2">
@@ -402,7 +280,7 @@ export default function CreateUser() {
             Cancelar
           </Button>
           <Button onClick={handleSubmit} disabled={isLoading} className="w-full sm:w-auto">
-            {isLoading ? "Criando..." : "Criar usuário"}
+            {isLoading ? "Criando..." : "Criar usuario"}
           </Button>
         </div>
       </div>

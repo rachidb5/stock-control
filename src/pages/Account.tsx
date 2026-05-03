@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Card,
@@ -20,12 +20,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import {
-  formatDuration,
-  formatTime,
-  getEntryDurationMs,
-  getTodayWorkedMs,
-} from "@/lib/timeClock";
 import { masks, validators } from "@/hooks/use-masks";
 import { Layout } from "@/components/Layout";
 import authService from "@/services/authService";
@@ -38,20 +32,7 @@ import {
   useSessionStore,
   UserRole,
 } from "@/stores/useSessionStore";
-import { useTimeClockStore } from "@/stores/useTimeClockStore";
-import {
-  Building,
-  Clock3,
-  CreditCard,
-  LogOut,
-  Mail,
-  MapPin,
-  Phone,
-  Save,
-  Target,
-  User,
-  UserPlus,
-} from "lucide-react";
+import { LogOut, Mail, Phone, Save, ShieldCheck, User, UserPlus } from "lucide-react";
 
 interface ValidationErrors {
   email?: string;
@@ -62,9 +43,6 @@ interface EditableUserData {
   name: string;
   email: string;
   phone: string;
-  address: string;
-  city: string;
-  company: string;
   role: UserRole;
 }
 
@@ -74,15 +52,13 @@ export default function Account() {
   const currentUser = useSessionStore(selectCurrentUser);
   const users = useSessionStore((state) => state.users);
   const updateCurrentUser = useSessionStore((state) => state.updateCurrentUser);
-  const entries = useTimeClockStore((state) => state.entries);
+  const resetSession = useSessionStore((state) => state.resetSession);
+  const setUsers = useSessionStore((state) => state.setUsers);
 
   const [userData, setUserData] = useState<EditableUserData>({
     name: currentUser.name,
     email: currentUser.email,
-    phone: currentUser.phone,
-    address: currentUser.address,
-    city: currentUser.city,
-    company: currentUser.company,
+    phone: masks.phone(currentUser.phone),
     role: currentUser.role,
   });
   const [isEditing, setIsEditing] = useState(false);
@@ -92,33 +68,15 @@ export default function Account() {
     setUserData({
       name: currentUser.name,
       email: currentUser.email,
-      phone: currentUser.phone,
-      address: currentUser.address,
-      city: currentUser.city,
-      company: currentUser.company,
+      phone: masks.phone(currentUser.phone),
       role: currentUser.role,
     });
     setIsEditing(false);
     setErrors({});
   }, [currentUser]);
 
-  const userEntries = useMemo(
-    () =>
-      entries
-        .filter((entry) => entry.userId === currentUser.id)
-        .slice()
-        .sort((left, right) => new Date(right.clockIn).getTime() - new Date(left.clockIn).getTime())
-        .slice(0, 5),
-    [entries, currentUser.id],
-  );
-  const todayWorked = useMemo(
-    () => getTodayWorkedMs(entries, currentUser.id),
-    [entries, currentUser.id],
-  );
-
   const handleInputChange = (field: keyof EditableUserData, value: string) => {
     const maskedValue = field === "phone" ? masks.phone(value) : value;
-
     setUserData((prev) => ({ ...prev, [field]: maskedValue }));
 
     if (errors[field as keyof ValidationErrors]) {
@@ -130,79 +88,75 @@ export default function Account() {
     const nextErrors: ValidationErrors = {};
 
     if (!validators.email(userData.email)) {
-      nextErrors.email = "Email inválido";
+      nextErrors.email = "Email invalido";
     }
 
     if (!validators.phone(userData.phone)) {
-      nextErrors.phone = "Telefone inválido (deve ter 11 dígitos)";
+      nextErrors.phone = "Telefone invalido (deve ter 11 digitos)";
     }
 
     setErrors(nextErrors);
     return Object.keys(nextErrors).length === 0;
   };
 
-  const isBackendUser = (id: string) =>
-    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
-
   const handleSave = async () => {
     if (!validateForm()) {
       toast({
-        title: "Erro de validação",
+        title: "Erro de validacao",
         description: "Revise os campos destacados antes de salvar.",
         variant: "destructive",
       });
       return;
     }
 
-    if (isBackendUser(currentUser.id)) {
-      try {
-        await userService.updateUser(currentUser.id, {
-          username: userData.name,
-          email: userData.email,
-          phone: userData.phone.replace(/\D/g, ""),
-          role: userData.role,
-        });
-      } catch (error) {
-        toast({
-          title: "Erro ao atualizar usuÃ¡rio",
-          description:
-            error instanceof Error
-              ? error.message
-              : "NÃ£o foi possÃ­vel salvar as alteraÃ§Ãµes na API.",
-          variant: "destructive",
-        });
-        return;
+    try {
+      const updatedUser = await userService.updateUser(currentUser.id, {
+        username: userData.name,
+        email: userData.email,
+        phone: userData.phone.replace(/\D/g, ""),
+        role: userData.role,
+      });
+
+      updateCurrentUser({
+        name: updatedUser.username,
+        email: updatedUser.email,
+        phone: updatedUser.phone,
+        role: updatedUser.role,
+      });
+
+      if (hasFullAccess(currentUser)) {
+        setUsers(await userService.getUsers());
       }
+
+      setIsEditing(false);
+      toast({
+        title: "Conta atualizada",
+        description: "Suas informacoes foram salvas pela API.",
+      });
+    } catch (error) {
+      toast({
+        title: "Erro ao atualizar usuario",
+        description:
+          error instanceof Error
+            ? error.message
+            : "Nao foi possivel salvar as alteracoes.",
+        variant: "destructive",
+      });
     }
-
-    updateCurrentUser({
-      name: userData.name,
-      email: userData.email,
-      phone: userData.phone,
-      address: userData.address,
-      city: userData.city,
-      company: userData.company,
-      role: userData.role,
-    });
-
-    setIsEditing(false);
-    toast({
-      title: "Conta atualizada",
-      description: "Suas informações pessoais foram salvas com sucesso.",
-    });
   };
 
   const handleLogout = async () => {
     await authService.logout();
+    resetSession();
     toast({
       title: "Logout realizado",
-      description: "Você foi desconectado com sucesso.",
+      description: "Voce foi desconectado com sucesso.",
     });
     navigate("/auth");
   };
 
   const getInitials = (name: string) =>
-    name
+    (name || currentUser.email)
       .split(" ")
       .map((word) => word[0])
       .join("")
@@ -215,7 +169,7 @@ export default function Account() {
         <div>
           <h1 className="text-2xl font-bold sm:text-3xl">Minha Conta</h1>
           <p className="text-muted-foreground">
-            Acompanhe seus dados, sua matrícula e seu histórico de ponto.
+            Dados carregados e salvos pela API.
           </p>
         </div>
 
@@ -237,32 +191,17 @@ export default function Account() {
                     <p className="text-sm text-muted-foreground">Perfil</p>
                     <p className="mt-1 font-medium">{roleLabels[currentUser.role]}</p>
                   </div>
-                  <Badge variant="secondary">{currentUser.employeeId}</Badge>
+                  <Badge variant="secondary">{roleLabels[currentUser.role]}</Badge>
                 </div>
                 <p className="mt-3 text-xs text-muted-foreground">
                   {roleDescriptions[currentUser.role]}
                 </p>
               </div>
 
-              <div className="rounded-2xl border border-border/70 bg-secondary/30 p-4">
-                <p className="text-sm text-muted-foreground">Meta mensal</p>
-                <p className="mt-1 text-2xl font-semibold">
-                  {new Intl.NumberFormat("pt-BR", {
-                    style: "currency",
-                    currency: "BRL",
-                  }).format(currentUser.monthlyGoal)}
-                </p>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  {currentUser.role === "vendedor"
-                    ? "Meta individual visível apenas para você e para a gestão."
-                    : "Meta consolidada usada na visão gerencial."}
-                </p>
-              </div>
-
               {hasFullAccess(currentUser) && (
                 <Button className="w-full" onClick={() => navigate("/conta/criar")}>
                   <UserPlus className="mr-2 h-4 w-4" />
-                  Criar novo usuário
+                  Criar novo usuario
                 </Button>
               )}
 
@@ -277,17 +216,19 @@ export default function Account() {
             <Card>
               <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div>
-                  <CardTitle>Informações pessoais</CardTitle>
+                  <CardTitle>Informacoes pessoais</CardTitle>
                   <CardDescription>
-                    Atualize apenas seus dados de contato e localização.
+                    Edite apenas os campos persistidos pela API de usuarios.
                   </CardDescription>
                 </div>
                 {!isEditing ? (
-                  <Button onClick={() => setIsEditing(true)} className="w-full sm:w-auto">Editar perfil</Button>
+                  <Button onClick={() => setIsEditing(true)} className="w-full sm:w-auto">
+                    Editar perfil
+                  </Button>
                 ) : (
                   <Button onClick={handleSave} className="w-full sm:w-auto">
                     <Save className="mr-2 h-4 w-4" />
-                    Salvar alterações
+                    Salvar alteracoes
                   </Button>
                 )}
               </CardHeader>
@@ -304,39 +245,6 @@ export default function Account() {
                     disabled={!isEditing}
                   />
                 </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="employeeId" className="flex items-center gap-2">
-                    <CreditCard className="h-4 w-4 text-muted-foreground" />
-                    Matrícula
-                  </Label>
-                  <Input id="employeeId" value={currentUser.employeeId} disabled />
-                </div>
-
-                {hasFullAccess(currentUser) && (
-                  <div className="space-y-2">
-                    <Label htmlFor="role" className="flex items-center gap-2">
-                      <CreditCard className="h-4 w-4 text-muted-foreground" />
-                      Perfil de acesso
-                    </Label>
-                    <Select
-                      value={userData.role}
-                      onValueChange={(value) =>
-                        handleInputChange("role", value as UserRole)
-                      }
-                      disabled={!isEditing}
-                    >
-                      <SelectTrigger id="role">
-                        <SelectValue placeholder="Selecione o perfil" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="vendedor">Vendedor</SelectItem>
-                        <SelectItem value="gestor">Gestor</SelectItem>
-                        <SelectItem value="admin">Admin</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
 
                 <div className="space-y-2">
                   <Label htmlFor="email" className="flex items-center gap-2">
@@ -370,124 +278,39 @@ export default function Account() {
                   {errors.phone && <p className="text-sm text-destructive">{errors.phone}</p>}
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="company" className="flex items-center gap-2">
-                    <Building className="h-4 w-4 text-muted-foreground" />
-                    Empresa
-                  </Label>
-                  <Input
-                    id="company"
-                    value={userData.company}
-                    onChange={(event) => handleInputChange("company", event.target.value)}
-                    disabled={!isEditing}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="monthlyGoal" className="flex items-center gap-2">
-                    <Target className="h-4 w-4 text-muted-foreground" />
-                    Meta mensal
-                  </Label>
-                  <Input
-                    id="monthlyGoal"
-                    value={new Intl.NumberFormat("pt-BR", {
-                      style: "currency",
-                      currency: "BRL",
-                    }).format(currentUser.monthlyGoal)}
-                    disabled
-                  />
-                </div>
-
-                <div className="space-y-2 md:col-span-2">
-                  <Label htmlFor="address" className="flex items-center gap-2">
-                    <MapPin className="h-4 w-4 text-muted-foreground" />
-                    Endereço
-                  </Label>
-                  <Input
-                    id="address"
-                    value={userData.address}
-                    onChange={(event) => handleInputChange("address", event.target.value)}
-                    disabled={!isEditing}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="city" className="flex items-center gap-2">
-                    <MapPin className="h-4 w-4 text-muted-foreground" />
-                    Cidade
-                  </Label>
-                  <Input
-                    id="city"
-                    value={userData.city}
-                    onChange={(event) => handleInputChange("city", event.target.value)}
-                    disabled={!isEditing}
-                  />
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Clock3 className="h-5 w-5 text-primary" />
-                  Registro de ponto
-                </CardTitle>
-                <CardDescription>
-                  Acompanhe suas últimas batidas e o total trabalhado hoje.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div className="rounded-2xl border border-border/70 bg-secondary/20 p-4">
-                    <p className="text-sm text-muted-foreground">Horas trabalhadas hoje</p>
-                    <p className="mt-1 text-2xl font-semibold">{formatDuration(todayWorked)}</p>
+                {hasFullAccess(currentUser) && (
+                  <div className="space-y-2">
+                    <Label htmlFor="role" className="flex items-center gap-2">
+                      <ShieldCheck className="h-4 w-4 text-muted-foreground" />
+                      Perfil de acesso
+                    </Label>
+                    <Select
+                      value={userData.role}
+                      onValueChange={(value) =>
+                        handleInputChange("role", value as UserRole)
+                      }
+                      disabled={!isEditing}
+                    >
+                      <SelectTrigger id="role">
+                        <SelectValue placeholder="Selecione o perfil" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="vendedor">Vendedor</SelectItem>
+                        <SelectItem value="gestor">Gestor</SelectItem>
+                        <SelectItem value="admin">Admin</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
-                  <div className="rounded-2xl border border-border/70 bg-secondary/20 p-4">
-                    <p className="text-sm text-muted-foreground">Últimos registros</p>
-                    <p className="mt-1 text-2xl font-semibold">{userEntries.length}</p>
-                  </div>
-                </div>
-
-                <div className="space-y-3">
-                  {userEntries.length === 0 ? (
-                    <div className="rounded-2xl border border-dashed p-4 text-sm text-muted-foreground">
-                      Ainda não há registros de ponto para este usuário.
-                    </div>
-                  ) : (
-                    userEntries.map((entry) => (
-                      <div
-                        key={entry.id}
-                        className="flex flex-col gap-2 rounded-2xl border border-border/70 bg-secondary/20 p-4 md:flex-row md:items-center md:justify-between"
-                      >
-                        <div>
-                          <p className="font-medium">
-                            Entrada às {formatTime(entry.clockIn)}
-                            {entry.clockOut ? ` • Saída às ${formatTime(entry.clockOut)}` : " • Em andamento"}
-                          </p>
-                          <p className="text-sm text-muted-foreground">
-                            {new Intl.DateTimeFormat("pt-BR", {
-                              day: "2-digit",
-                              month: "2-digit",
-                              year: "numeric",
-                            }).format(new Date(entry.clockIn))}
-                          </p>
-                        </div>
-                        <Badge variant="outline">
-                          {formatDuration(getEntryDurationMs(entry))}
-                        </Badge>
-                      </div>
-                    ))
-                  )}
-                </div>
+                )}
               </CardContent>
             </Card>
 
             {hasFullAccess(currentUser) && (
               <Card>
                 <CardHeader>
-                  <CardTitle>Usuários cadastrados</CardTitle>
+                  <CardTitle>Usuarios cadastrados</CardTitle>
                   <CardDescription>
-                    Configuração administrativa com matrícula, perfil e meta individual.
+                    Lista carregada diretamente de /users.
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="grid gap-3 md:grid-cols-2">
@@ -496,19 +319,17 @@ export default function Account() {
                       <div className="flex items-start justify-between gap-3">
                         <div>
                           <p className="font-medium">{user.name}</p>
-                          <p className="text-sm text-muted-foreground">{user.employeeId}</p>
+                          <p className="break-all text-sm text-muted-foreground">{user.email}</p>
+                          {user.phone && (
+                            <p className="text-sm text-muted-foreground">
+                              {masks.phone(user.phone)}
+                            </p>
+                          )}
                         </div>
                         <Badge variant={user.role !== "vendedor" ? "secondary" : "outline"}>
                           {roleLabels[user.role]}
                         </Badge>
                       </div>
-                      <p className="mt-3 text-sm text-muted-foreground">
-                        Meta:{" "}
-                        {new Intl.NumberFormat("pt-BR", {
-                          style: "currency",
-                          currency: "BRL",
-                        }).format(user.monthlyGoal)}
-                      </p>
                     </div>
                   ))}
                 </CardContent>

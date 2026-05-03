@@ -1,6 +1,5 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
 import { StatsCard } from "@/components/StatsCard";
 import {
   buildConditionDistribution,
@@ -8,7 +7,6 @@ import {
   buildSellerLeaderboard,
   formatCurrency,
   formatPercent,
-  getGoalProgress,
   getMonthComparison,
   getSalesMetrics,
   getTopProduct,
@@ -38,7 +36,6 @@ import {
   LineChart,
   Package,
   ShoppingCart,
-  Target,
   TrendingUp,
   Users,
 } from "lucide-react";
@@ -94,24 +91,13 @@ export function SalesOverview({
   stockSummary,
 }: SalesOverviewProps) {
   const scopedMetrics = getSalesMetrics(visibleSales);
-  const goalProgress = getGoalProgress(currentUser, allSales, users);
   const monthComparison = getMonthComparison(visibleSales);
   const monthlyPerformance = buildMonthlyPerformance(visibleSales);
   const leaderboard = buildSellerLeaderboard(allSales, users);
   const conditionDistribution = buildConditionDistribution(visibleSales);
   const topProduct = getTopProduct(visibleSales);
-
   const bestSeller = leaderboard[0];
   const adminView = hasCommercialManagementAccess(currentUser);
-  const headline =
-    adminView
-      ? "Visão consolidada da operação comercial"
-      : "Seu acompanhamento diário de vendas e meta";
-
-  const subtitle =
-    adminView
-      ? "Acompanhe a equipe inteira, identifique destaques e reaja rápido aos gargalos."
-      : "Monitore seu ritmo, compare com a meta do mês e priorize oportunidades.";
 
   return (
     <div className="space-y-6">
@@ -122,37 +108,35 @@ export function SalesOverview({
               {roleLabels[currentUser.role]}
             </Badge>
             <div className="space-y-2">
-              <h2 className="text-2xl font-semibold sm:text-3xl">{headline}</h2>
-              <p className="max-w-2xl text-sm text-muted-foreground">{subtitle}</p>
+              <h2 className="text-2xl font-semibold sm:text-3xl">
+                {adminView ? "Visao consolidada da operacao comercial" : "Seu acompanhamento diario de vendas"}
+              </h2>
+              <p className="max-w-2xl text-sm text-muted-foreground">
+                {adminView
+                  ? "Acompanhe a equipe inteira com dados carregados da API."
+                  : "Monitore seu ritmo e priorize oportunidades."}
+              </p>
             </div>
             <div className="grid gap-3 sm:grid-cols-3">
               <div className="rounded-2xl border border-border/60 bg-background/90 p-4">
-                <p className="text-xs uppercase text-muted-foreground">
-                  Receita do mês
-                </p>
+                <p className="text-xs uppercase text-muted-foreground">Receita do mes</p>
                 <p className="mt-2 text-2xl font-semibold">
                   {formatCurrency(monthComparison.currentMonth)}
                 </p>
-                <p
-                  className={`mt-1 text-xs ${
-                    monthComparison.positive ? "text-accent" : "text-destructive"
-                  }`}
-                >
+                <p className={`mt-1 text-xs ${monthComparison.positive ? "text-accent" : "text-destructive"}`}>
                   {monthComparison.positive ? "+" : ""}
-                  {monthComparison.deltaPercent.toFixed(0)}% vs. mês anterior
+                  {monthComparison.deltaPercent.toFixed(0)}% vs. mes anterior
                 </p>
               </div>
               <div className="rounded-2xl border border-border/60 bg-background/90 p-4">
-                <p className="text-xs uppercase text-muted-foreground">Meta</p>
-                <p className="mt-2 text-2xl font-semibold">{formatPercent(goalProgress.percent)}</p>
+                <p className="text-xs uppercase text-muted-foreground">Vendas concluidas</p>
+                <p className="mt-2 text-2xl font-semibold">{scopedMetrics.completedSales}</p>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  {formatCurrency(goalProgress.achieved)} de {formatCurrency(goalProgress.target)}
+                  Negocios finalizados no recorte atual
                 </p>
               </div>
               <div className="rounded-2xl border border-border/60 bg-background/90 p-4">
-                <p className="text-xs uppercase text-muted-foreground">
-                  Estoque monitorado
-                </p>
+                <p className="text-xs uppercase text-muted-foreground">Estoque monitorado</p>
                 <p className="mt-2 text-2xl font-semibold">{stockSummary.total}</p>
                 <p className="mt-1 text-xs text-muted-foreground">
                   {formatCurrency(stockSummary.totalValue)} em mercadoria
@@ -165,23 +149,22 @@ export function SalesOverview({
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">
-                  {adminView ? "Meta do time" : "Sua meta mensal"}
+                  {adminView ? "Resumo da equipe" : "Seu resumo"}
                 </p>
-                <p className="mt-1 text-2xl font-semibold">{formatCurrency(goalProgress.target)}</p>
+                <p className="mt-1 text-2xl font-semibold">
+                  {formatCurrency(scopedMetrics.totalRevenue)}
+                </p>
               </div>
-              <Target className="h-9 w-9 text-primary" />
+              <DollarSign className="h-9 w-9 text-primary" />
             </div>
-            <div className="mt-5 space-y-2">
-              <div className="flex flex-col gap-1 text-sm sm:flex-row sm:items-center sm:justify-between">
-                <span className="text-muted-foreground">
-                  {adminView ? "Faturamento acumulado" : "Vendas acumuladas"}
-                </span>
-                <span className="font-medium">{formatCurrency(goalProgress.achieved)}</span>
+            <div className="mt-5 space-y-2 text-sm">
+              <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                <span className="text-muted-foreground">Lucro estimado</span>
+                <span className="font-medium">{formatCurrency(scopedMetrics.totalProfit)}</span>
               </div>
-              <Progress value={goalProgress.percent} />
-              <div className="flex flex-col gap-1 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
-                <span>{formatPercent(goalProgress.percent)} concluído</span>
-                <span>Faltam {formatCurrency(goalProgress.remaining)}</span>
+              <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                <span className="text-muted-foreground">Ticket medio</span>
+                <span className="font-medium">{formatCurrency(scopedMetrics.averageTicket)}</span>
               </div>
             </div>
           </div>
@@ -190,27 +173,27 @@ export function SalesOverview({
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <StatsCard
-          title={adminView ? "Vendas concluídas pela equipe" : "Suas vendas concluídas"}
+          title={adminView ? "Vendas concluidas pela equipe" : "Suas vendas concluidas"}
           value={String(scopedMetrics.completedSales)}
-          description="Negócios finalizados no período disponível"
+          description="Negocios finalizados no periodo disponivel"
           icon={ShoppingCart}
         />
         <StatsCard
           title="Receita total"
           value={formatCurrency(scopedMetrics.totalRevenue)}
-          description="Faturamento das vendas concluídas"
+          description="Faturamento das vendas concluidas"
           icon={DollarSign}
         />
         <StatsCard
           title="Lucro estimado"
           value={formatCurrency(scopedMetrics.totalProfit)}
-          description="Receita menos custo de aquisição"
+          description="Receita menos custo de aquisicao"
           icon={TrendingUp}
         />
         <StatsCard
-          title="Ticket médio"
+          title="Ticket medio"
           value={formatCurrency(scopedMetrics.averageTicket)}
-          description="Valor médio por venda concluída"
+          description="Valor medio por venda concluida"
           icon={LineChart}
         />
       </div>
@@ -220,12 +203,10 @@ export function SalesOverview({
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <BarChart3 className="h-5 w-5 text-primary" />
-              Evolução de receita e lucro
+              Evolucao de receita e lucro
             </CardTitle>
             <CardDescription>
-              {adminView
-                ? "Histórico consolidado da equipe nos últimos meses."
-                : "Seu ritmo de venda para acompanhar constância e margem."}
+              Historico calculado a partir das vendas retornadas pela API.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -281,33 +262,31 @@ export function SalesOverview({
         <Card className="shadow-md">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Target className="h-5 w-5 text-primary" />
-              Indicadores rápidos
+              <Package className="h-5 w-5 text-primary" />
+              Indicadores rapidos
             </CardTitle>
-            <CardDescription>
-              Resumo operacional para priorizar suas próximas ações.
-            </CardDescription>
+            <CardDescription>Resumo operacional do recorte atual.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="rounded-2xl border bg-secondary/40 p-4">
-              <p className="text-sm text-muted-foreground">Taxa de conclusão</p>
+              <p className="text-sm text-muted-foreground">Taxa de conclusao</p>
               <p className="mt-1 text-2xl font-semibold">{formatPercent(scopedMetrics.closeRate)}</p>
               <p className="text-xs text-muted-foreground">
-                {scopedMetrics.pendingSales} negócio(s) aguardando fechamento completo
+                {scopedMetrics.pendingSales} negocio(s) aguardando fechamento completo
               </p>
             </div>
             <div className="rounded-2xl border bg-secondary/40 p-4">
-              <p className="text-sm text-muted-foreground">Acessórios agregados</p>
+              <p className="text-sm text-muted-foreground">Acessorios agregados</p>
               <p className="mt-1 text-2xl font-semibold">
                 {formatCurrency(scopedMetrics.accessoryRevenue)}
               </p>
               <p className="text-xs text-muted-foreground">
-                Receita complementar com capa e película
+                Receita complementar com capa e pelicula
               </p>
             </div>
             <div className="rounded-2xl border bg-secondary/40 p-4">
               <p className="text-sm text-muted-foreground">Produto destaque</p>
-              <p className="mt-1 text-lg font-semibold">{topProduct?.name ?? "Sem histórico"}</p>
+              <p className="mt-1 text-lg font-semibold">{topProduct?.name ?? "Sem historico"}</p>
               <p className="text-xs text-muted-foreground">
                 {topProduct
                   ? `${topProduct.sales} venda(s) somando ${formatCurrency(topProduct.revenue)}`
@@ -327,7 +306,7 @@ export function SalesOverview({
                 Ranking de vendedores
               </CardTitle>
               <CardDescription>
-                Compare receita, meta e produtividade de cada vendedor.
+                Compare receita e produtividade de cada vendedor.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-5">
@@ -363,7 +342,7 @@ export function SalesOverview({
                           #{index + 1} {seller.sellerName}
                         </p>
                         <p className="text-sm text-muted-foreground">
-                          {seller.completedSales} venda(s) concluída(s) • ticket médio{" "}
+                          {seller.completedSales} venda(s) concluidas com ticket medio{" "}
                           {formatCurrency(seller.averageTicket)}
                         </p>
                       </div>
@@ -371,16 +350,9 @@ export function SalesOverview({
                         {roleLabels[seller.role]}
                       </Badge>
                     </div>
-                    <div className="mt-3 space-y-2">
-                      <div className="flex flex-col gap-1 text-sm sm:flex-row sm:items-center sm:justify-between">
-                        <span className="text-muted-foreground">Receita</span>
-                        <span className="font-medium">{formatCurrency(seller.revenue)}</span>
-                      </div>
-                      <Progress value={seller.progress} />
-                      <div className="flex flex-col gap-1 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
-                        <span>{formatPercent(seller.progress)} da meta individual</span>
-                        <span>Lucro {formatCurrency(seller.profit)}</span>
-                      </div>
+                    <div className="mt-3 flex flex-col gap-1 text-sm sm:flex-row sm:items-center sm:justify-between">
+                      <span>Receita {formatCurrency(seller.revenue)}</span>
+                      <span className="text-muted-foreground">Lucro {formatCurrency(seller.profit)}</span>
                     </div>
                   </div>
                 ))}
@@ -395,18 +367,16 @@ export function SalesOverview({
                 Seu foco de performance
               </CardTitle>
               <CardDescription>
-                Pontos práticos para sustentar resultado e bater a meta.
+                Pontos praticos calculados a partir das suas vendas.
               </CardDescription>
             </CardHeader>
             <CardContent className="grid gap-4 md:grid-cols-3">
               <div className="rounded-2xl border border-border/70 bg-secondary/30 p-4">
-                <p className="text-sm text-muted-foreground">Meta restante</p>
+                <p className="text-sm text-muted-foreground">Receita acumulada</p>
                 <p className="mt-2 text-2xl font-semibold">
-                  {formatCurrency(goalProgress.remaining)}
+                  {formatCurrency(scopedMetrics.totalRevenue)}
                 </p>
-                <p className="text-xs text-muted-foreground">
-                  Valor necessário para concluir o mês acima do objetivo
-                </p>
+                <p className="text-xs text-muted-foreground">Total das vendas concluidas</p>
               </div>
               <div className="rounded-2xl border border-border/70 bg-secondary/30 p-4">
                 <p className="text-sm text-muted-foreground">Melhor margem</p>
@@ -416,10 +386,10 @@ export function SalesOverview({
                 </p>
               </div>
               <div className="rounded-2xl border border-border/70 bg-secondary/30 p-4">
-                <p className="text-sm text-muted-foreground">Estoque disponível</p>
+                <p className="text-sm text-muted-foreground">Estoque disponivel</p>
                 <p className="mt-2 text-2xl font-semibold">{stockSummary.total}</p>
                 <p className="text-xs text-muted-foreground">
-                  Mantenha o giro priorizando os modelos mais buscados
+                  Quantidade informada pelo painel da API
                 </p>
               </div>
             </CardContent>
@@ -430,12 +400,10 @@ export function SalesOverview({
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Package className="h-5 w-5 text-primary" />
-              Distribuição por condição
+              Distribuicao por condicao
             </CardTitle>
             <CardDescription>
-              {adminView
-                ? "Perfil dos aparelhos vendidos por toda a equipe."
-                : "Mix dos aparelhos que você vendeu recentemente."}
+              Perfil dos aparelhos vendidos no recorte atual.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -459,7 +427,7 @@ export function SalesOverview({
                     <p className="mt-1 text-lg font-semibold">{bestSeller.sellerName}</p>
                     <p className="text-xs text-muted-foreground">
                       {formatCurrency(bestSeller.revenue)} em receita com{" "}
-                      {bestSeller.completedSales} venda(s) concluída(s)
+                      {bestSeller.completedSales} venda(s) concluidas
                     </p>
                   </div>
                 )}

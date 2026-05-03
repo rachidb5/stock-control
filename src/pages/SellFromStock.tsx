@@ -518,7 +518,7 @@ const SellFromStock = () => {
                         <FormControl>
                           <Input
                             type="email"
-                            placeholder="email@exemplo.com"
+                            placeholder="email@dominio.com"
                             {...field}
                           />
                         </FormControl>

@@ -34,8 +34,6 @@ export interface SellerLeaderboardEntry {
   completedSales: number;
   pendingSales: number;
   averageTicket: number;
-  goal: number;
-  progress: number;
 }
 
 export interface DistributionPoint {
@@ -118,39 +116,6 @@ export function getSalesMetrics(sales: SoldDevice[]): SalesMetrics {
   };
 }
 
-export function getGoalProgress(
-  currentUser: AppUser,
-  sales: SoldDevice[],
-  users: AppUser[],
-  referenceDate = new Date(),
-): GoalProgress {
-  const monthSales = sales.filter((sale) => isSameMonth(sale.data, referenceDate));
-
-  const target =
-    hasCommercialManagementAccess(currentUser)
-      ? users
-          .filter((user) => user.role === "vendedor")
-          .reduce((sum, user) => sum + user.monthlyGoal, 0)
-      : currentUser.monthlyGoal;
-
-  const achieved = monthSales
-    .filter((sale) =>
-      hasCommercialManagementAccess(currentUser)
-        ? true
-        : sale.vendedor_id === currentUser.id,
-    )
-    .reduce((sum, sale) => sum + getRevenue(sale), 0);
-
-  const percent = target ? Math.min((achieved / target) * 100, 100) : 0;
-
-  return {
-    target,
-    achieved,
-    percent,
-    remaining: Math.max(target - achieved, 0),
-  };
-}
-
 export function getMonthComparison(
   sales: SoldDevice[],
   referenceDate = new Date(),
@@ -220,7 +185,6 @@ export function buildSellerLeaderboard(sales: SoldDevice[], users: AppUser[]) {
         id: sellerId,
         name: sale.vendedor_nome ?? "Sem vendedor",
         role: "vendedor",
-        monthlyGoal: 0,
       } as AppUser);
 
     const entry = grouped.get(user.id) ?? {
@@ -232,8 +196,6 @@ export function buildSellerLeaderboard(sales: SoldDevice[], users: AppUser[]) {
       completedSales: 0,
       pendingSales: 0,
       averageTicket: 0,
-      goal: user.monthlyGoal,
-      progress: 0,
     };
 
     entry.revenue += sale.aparelho_recebido ? getRevenue(sale) : 0;
@@ -248,7 +210,6 @@ export function buildSellerLeaderboard(sales: SoldDevice[], users: AppUser[]) {
     .map((entry) => ({
       ...entry,
       averageTicket: entry.completedSales ? entry.revenue / entry.completedSales : 0,
-      progress: entry.goal ? Math.min((entry.revenue / entry.goal) * 100, 100) : 0,
     }))
     .sort((left, right) => right.revenue - left.revenue);
 }
