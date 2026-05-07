@@ -14,22 +14,6 @@ export interface StockItem {
   dataEntrada: string;
   fornecedor: string;
   observacao?: string;
-  foto?: string;
-}
-
-export interface StockPayload {
-  imei: string;
-  modelo: string;
-  cor?: string;
-  fornecedor?: string;
-  observacao?: string;
-  valor_unitario: number;
-  foto?: string;
-  marca?: string;
-  capacidade?: string;
-  preco?: number;
-  condicao?: string;
-  dataEntrada?: string;
 }
 
 export interface StockResponse {
@@ -61,7 +45,7 @@ export const stockService = {
     );
   },
 
-  createStock: async (data: StockPayload): Promise<StockItem> => {
+  createStock: async (data: Omit<StockItem, "id">): Promise<StockItem> => {
     return requestData(
       api.post<StockItem>("/stock", data),
       "Não foi possível criar o item no estoque.",
@@ -70,7 +54,7 @@ export const stockService = {
 
   updateStock: async (
     id: string,
-    data: Partial<StockPayload>
+    data: Partial<StockItem>
   ): Promise<StockItem> => {
     const payload = { ...data };
     delete payload.imei;

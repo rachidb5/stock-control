@@ -10,5 +10,4 @@ export interface StockItem {
   dataEntrada: string; // formato YYYY-MM-DD
   fornecedor: string;
   observacao: string;
-  foto?: string;
 }

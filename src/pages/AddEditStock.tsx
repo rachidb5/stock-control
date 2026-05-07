@@ -20,31 +20,11 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, Loader2, Trash2, Upload } from "lucide-react";
+import { ArrowLeft, Loader2 } from "lucide-react";
 import { masks, validators } from "@/hooks/use-masks";
 import stockService, { StockItem } from "@/services/stockServices";
-import { type ChangeEvent, useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
-
-const PRODUCT_PHOTO_PLACEHOLDER = "/placeholder.svg";
-const MAX_PHOTO_SIZE_BYTES = 3 * 1024 * 1024;
-
-const fileToBase64 = (file: File) =>
-  new Promise<string>((resolve, reject) => {
-    const reader = new FileReader();
-
-    reader.onload = () => {
-      if (typeof reader.result === "string") {
-        resolve(reader.result);
-        return;
-      }
-
-      reject(new Error("Formato de imagem inválido."));
-    };
-    reader.onerror = () =>
-      reject(reader.error ?? new Error("Erro ao ler a imagem."));
-    reader.readAsDataURL(file);
-  });
 
 const stockSchema = z.object({
   modelo: z
@@ -66,7 +46,6 @@ const stockSchema = z.object({
     .string()
     .max(500, "Observação deve ter no máximo 500 caracteres")
     .optional(),
-  foto: z.string().optional(),
   valor_unitario: z.number().min(0.01, "Valor deve ser maior que zero"),
 });
 
@@ -78,20 +57,6 @@ const AddEditStock = () => {
   const isEditing = !!id;
   const [loading, setLoading] = useState(true);
 
-  const form = useForm<StockFormData>({
-    resolver: zodResolver(stockSchema),
-    defaultValues: {
-      modelo: "",
-      cor: "",
-      fornecedor: "",
-      imei: "",
-      observacao: "",
-      foto: "",
-      valor_unitario: 0,
-    },
-  });
-  const { reset } = form;
-
   const fetchItem = useCallback(async () => {
     if (!id) return;
 
@@ -99,13 +64,12 @@ const AddEditStock = () => {
       setLoading(true);
 
       const response: StockItem = await stockService.getStockById(id);
-      reset({
+      form.reset({
         modelo: response.modelo,
         cor: response.cor,
         fornecedor: response.fornecedor,
         imei: response.imei,
         observacao: response.observacao ?? "",
-        foto: response.foto ?? "",
         valor_unitario: Number(response.valor_unitario),
       });
     } catch (error) {
@@ -114,7 +78,19 @@ const AddEditStock = () => {
     } finally {
       setLoading(false);
     }
-  }, [id, reset]);
+  }, [id]);
+
+  const form = useForm<StockFormData>({
+    resolver: zodResolver(stockSchema),
+    defaultValues: {
+      modelo: "",
+      cor: "",
+      fornecedor: "",
+      imei: "",
+      observacao: "",
+      valor_unitario: 0,
+    },
+  });
 
   useEffect(() => {
     if (isEditing) {
@@ -123,36 +99,6 @@ const AddEditStock = () => {
       setLoading(false);
     }
   }, [fetchItem, isEditing]);
-
-  const handlePhotoChange = async (
-    event: ChangeEvent<HTMLInputElement>,
-    onChange: (value: string) => void
-  ) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    if (!file.type.startsWith("image/")) {
-      toast.error("Selecione um arquivo de imagem.");
-      event.target.value = "";
-      return;
-    }
-
-    if (file.size > MAX_PHOTO_SIZE_BYTES) {
-      toast.error("A foto deve ter até 3 MB.");
-      event.target.value = "";
-      return;
-    }
-
-    try {
-      const base64 = await fileToBase64(file);
-      onChange(base64);
-    } catch (error) {
-      console.error("Erro ao converter foto:", error);
-      toast.error("Não foi possível carregar a foto.");
-    } finally {
-      event.target.value = "";
-    }
-  };
 
   const onSubmit = async (data: StockFormData) => {
     try {
@@ -318,64 +264,6 @@ const AddEditStock = () => {
                     )}
                   />
                 </div>
-
-                <FormField
-                  control={form.control}
-                  name="foto"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Foto</FormLabel>
-                      <FormControl>
-                        <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
-                          <div className="flex h-44 w-full items-center justify-center overflow-hidden rounded-md border bg-muted sm:max-w-xs">
-                            {field.value ? (
-                              <img
-                                src={field.value}
-                                alt={`Foto de ${
-                                  form.watch("modelo") || "produto"
-                                }`}
-                                className="h-full w-full object-cover"
-                              />
-                            ) : (
-                              <img
-                                src={PRODUCT_PHOTO_PLACEHOLDER}
-                                alt="Produto sem foto cadastrada"
-                                className="h-full w-full object-cover"
-                              />
-                            )}
-                          </div>
-                          <div className="flex flex-col gap-2 sm:min-w-48">
-                            <Button type="button" variant="outline" asChild>
-                              <label className="cursor-pointer">
-                                <Upload className="mr-2 h-4 w-4" />
-                                Selecionar foto
-                                <input
-                                  type="file"
-                                  accept="image/*"
-                                  onChange={(event) =>
-                                    handlePhotoChange(event, field.onChange)
-                                  }
-                                  className="hidden"
-                                />
-                              </label>
-                            </Button>
-                            {field.value && (
-                              <Button
-                                type="button"
-                                variant="outline"
-                                onClick={() => field.onChange("")}
-                              >
-                                <Trash2 className="mr-2 h-4 w-4" />
-                                Remover foto
-                              </Button>
-                            )}
-                          </div>
-                        </div>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
 
                 <FormField
                   control={form.control}
