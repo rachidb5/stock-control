@@ -14,6 +14,8 @@ import { exportRowsToWorkbook, importRowsFromWorkbook, type ExcelRow } from "@/l
 import { stockService, StockItem, StockResponse } from "@/services/stockServices";
 import { toast } from "sonner";
 
+const PRODUCT_PHOTO_PLACEHOLDER = "/placeholder.svg";
+
 interface StockTableProps {
   refreshTrigger?: boolean;
   initialSearch?: string;
@@ -398,6 +400,7 @@ export const StockTable = ({
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead>Foto</TableHead>
                     <TableHead>Modelo</TableHead>
                     <TableHead>Cor</TableHead>
                     <TableHead>IMEI</TableHead>
@@ -420,6 +423,17 @@ export const StockTable = ({
                   ) : (
                     filteredDevices.map((device) => (
                       <TableRow key={device.id || device.imei} className="hover:bg-muted/50">
+                        <TableCell>
+                          <img
+                            src={device.foto || PRODUCT_PHOTO_PLACEHOLDER}
+                            alt={
+                              device.foto
+                                ? `Foto de ${device.modelo}`
+                                : "Produto sem foto cadastrada"
+                            }
+                            className="h-12 w-12 rounded-md border object-cover"
+                          />
+                        </TableCell>
                         <TableCell className="max-w-[220px] truncate font-medium">{device.modelo}</TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2">

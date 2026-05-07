@@ -13,29 +13,35 @@ import { useCallback, useEffect, useState } from "react";
 import stockService, { StockItem } from "@/services/stockServices";
 import { toast } from "sonner";
 
+const PRODUCT_PHOTO_PLACEHOLDER = "/placeholder.svg";
+
 const StockDetail = () => {
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
   const { id } = useParams();
-  const [device, setDevice] = useState<StockItem>(null)
+  const [device, setDevice] = useState<StockItem | null>(null);
   const fetchItem = useCallback(async () => {
+    if (!id) {
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
 
       const response: StockItem = await stockService.getStockById(id);
-      console.log(response);
-      setDevice(response)
+      setDevice(response);
     } catch (error) {
       console.error("Erro ao buscar estoque:", error);
       toast.error("Erro ao carregar estoque. Tente novamente.");
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [id]);
 
   useEffect(() => {
     fetchItem();
-  }, []);
+  }, [fetchItem]);
 
   if (!device && loading === false) {
     return (
@@ -64,14 +70,15 @@ const StockDetail = () => {
       currency: "BRL",
     }).format(value);
   };
-   if (loading) {
-     return (
-       <div className="flex flex-col justify-center items-center py-12 space-y-4">
-         <Loader2 className="h-8 w-8 animate-spin text-primary" />
-         <span className="text-muted-foreground">Carregando item...</span>
-       </div>
-     );
-   }
+
+  if (loading) {
+    return (
+      <div className="flex flex-col justify-center items-center py-12 space-y-4">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <span className="text-muted-foreground">Carregando item...</span>
+      </div>
+    );
+  }
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b bg-card shadow-sm">
@@ -104,6 +111,24 @@ const StockDetail = () => {
 
       <main className="container mx-auto px-4 py-6 sm:py-8">
         <div className="grid gap-6 md:grid-cols-2">
+          <Card>
+            <CardHeader>
+              <CardTitle>Foto do Produto</CardTitle>
+              <CardDescription>Registro visual do aparelho</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <img
+                src={device.foto || PRODUCT_PHOTO_PLACEHOLDER}
+                alt={
+                  device.foto
+                    ? `Foto de ${device.modelo}`
+                    : "Produto sem foto cadastrada"
+                }
+                className="h-72 w-full rounded-md border object-cover"
+              />
+            </CardContent>
+          </Card>
+
           <Card>
             <CardHeader>
               <CardTitle>Informações do Aparelho</CardTitle>
