@@ -14,6 +14,7 @@ export interface StockItem {
   dataEntrada: string;
   fornecedor: string;
   observacao?: string;
+  foto?: string;
 }
 
 export interface StockResponse {

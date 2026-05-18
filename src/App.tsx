@@ -3,7 +3,6 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { useEffect, useState } from "react";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import Index from "./pages/Index";
 import CommercialDashboard from "./pages/CommercialDashboard";
@@ -21,55 +20,14 @@ import StockPage from "./pages/StockPage";
 import Products from "./pages/Products";
 import Suppliers from "./pages/Suppliers";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
-import authService from "@/services/authService";
-import userService from "@/services/userService";
-import { useSessionStore } from "@/stores/useSessionStore";
+import { useme } from "@/hooks/useme";
 import { Loader2 } from "lucide-react";
 const queryClient = new QueryClient();
 
 function SessionBootstrap({ children }: { children: React.ReactNode }) {
-  const [ready, setReady] = useState(false);
-  const setAuthenticatedUser = useSessionStore(
-    (state) => state.setAuthenticatedUser,
-  );
-  const setUsers = useSessionStore((state) => state.setUsers);
-  const resetSession = useSessionStore((state) => state.resetSession);
+  const { isCheckingAuth } = useme();
 
-  useEffect(() => {
-    let active = true;
-
-    const hydrateSession = async () => {
-      try {
-        const currentUser = await authService.me();
-        if (!active) return;
-
-        setAuthenticatedUser(currentUser);
-
-        if (currentUser.role === "admin" || currentUser.role === "gestor") {
-          const users = await userService.getUsers();
-          if (!active) return;
-          setUsers(users);
-          setAuthenticatedUser(currentUser);
-        }
-      } catch {
-        if (active) {
-          resetSession();
-        }
-      } finally {
-        if (active) {
-          setReady(true);
-        }
-      }
-    };
-
-    hydrateSession();
-
-    return () => {
-      active = false;
-    };
-  }, [resetSession, setAuthenticatedUser, setUsers]);
-
-  if (!ready) {
+  if (isCheckingAuth) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background text-muted-foreground">
         <Loader2 className="mr-2 h-5 w-5 animate-spin text-primary" />

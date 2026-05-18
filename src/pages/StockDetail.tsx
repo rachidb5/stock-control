@@ -17,25 +17,26 @@ const StockDetail = () => {
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
   const { id } = useParams();
-  const [device, setDevice] = useState<StockItem>(null)
+  const [device, setDevice] = useState<StockItem | null>(null);
   const fetchItem = useCallback(async () => {
+    if (!id) return;
+
     try {
       setLoading(true);
 
       const response: StockItem = await stockService.getStockById(id);
-      console.log(response);
-      setDevice(response)
+      setDevice(response);
     } catch (error) {
       console.error("Erro ao buscar estoque:", error);
       toast.error("Erro ao carregar estoque. Tente novamente.");
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [id]);
 
   useEffect(() => {
     fetchItem();
-  }, []);
+  }, [fetchItem]);
 
   if (!device && loading === false) {
     return (
@@ -103,7 +104,27 @@ const StockDetail = () => {
       </header>
 
       <main className="container mx-auto px-4 py-6 sm:py-8">
-        <div className="grid gap-6 md:grid-cols-2">
+        <div className="grid gap-6 lg:grid-cols-3">
+          <Card>
+            <CardHeader>
+              <CardTitle>Foto</CardTitle>
+              <CardDescription>Imagem do aparelho</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex aspect-square w-full items-center justify-center overflow-hidden rounded-md border bg-muted">
+                {device.foto ? (
+                  <img
+                    src={device.foto}
+                    alt={device.modelo}
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <Package className="h-16 w-16 text-muted-foreground" />
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
           <Card>
             <CardHeader>
               <CardTitle>Informações do Aparelho</CardTitle>
@@ -165,7 +186,7 @@ const StockDetail = () => {
           </Card>
 
           {device.observacao && (
-            <Card className="md:col-span-2">
+            <Card className="lg:col-span-3">
               <CardHeader>
                 <CardTitle>Observações</CardTitle>
                 <CardDescription>

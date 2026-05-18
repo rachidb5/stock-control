@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   Card,
   CardContent,
@@ -48,6 +49,7 @@ interface EditableUserData {
 
 export default function Account() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { toast } = useToast();
   const currentUser = useSessionStore(selectCurrentUser);
   const users = useSessionStore((state) => state.users);
@@ -148,6 +150,7 @@ export default function Account() {
   const handleLogout = async () => {
     await authService.logout();
     resetSession();
+    queryClient.removeQueries({ queryKey: ["auth", "me"] });
     toast({
       title: "Logout realizado",
       description: "Voce foi desconectado com sucesso.",

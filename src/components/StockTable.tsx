@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, Eye, Edit, FileDown, Upload, FileSpreadsheet, ShoppingCart, Loader2, RefreshCw, Trash2 } from "lucide-react";
+import { Search, Eye, Edit, FileDown, Upload, FileSpreadsheet, ShoppingCart, Loader2, RefreshCw, Trash2, Package } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -398,6 +398,7 @@ export const StockTable = ({
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead className="w-[72px]">Foto</TableHead>
                     <TableHead>Modelo</TableHead>
                     <TableHead>Cor</TableHead>
                     <TableHead>IMEI</TableHead>
@@ -420,6 +421,19 @@ export const StockTable = ({
                   ) : (
                     filteredDevices.map((device) => (
                       <TableRow key={device.id || device.imei} className="hover:bg-muted/50">
+                        <TableCell>
+                          <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-md border bg-muted">
+                            {device.foto ? (
+                              <img
+                                src={device.foto}
+                                alt={device.modelo}
+                                className="h-full w-full object-cover"
+                              />
+                            ) : (
+                              <Package className="h-5 w-5 text-muted-foreground" />
+                            )}
+                          </div>
+                        </TableCell>
                         <TableCell className="max-w-[220px] truncate font-medium">{device.modelo}</TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2">

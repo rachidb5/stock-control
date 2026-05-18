@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useNavigate } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { LogIn, UserPlus } from "lucide-react";
 import authService from "@/services/authService";
@@ -49,6 +50,7 @@ const Auth = () => {
   const [activeTab, setActiveTab] = useState("login");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { toast } = useToast();
   const setUsers = useSessionStore((state) => state.setUsers);
   const setAuthenticatedUser = useSessionStore(
@@ -82,6 +84,7 @@ const Auth = () => {
         setAuthenticatedUser(backendUser);
         await syncManagedUsers(backendUser.role);
         setAuthenticatedUser(backendUser);
+        await queryClient.invalidateQueries({ queryKey: ["auth", "me"] });
       }
 
       toast({
@@ -117,6 +120,7 @@ const Auth = () => {
 
       if (response.user) {
         setAuthenticatedUser(response.user);
+        await queryClient.invalidateQueries({ queryKey: ["auth", "me"] });
       }
 
       toast({

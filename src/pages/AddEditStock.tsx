@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, Loader2 } from "lucide-react";
+import { ArrowLeft, ImagePlus, Loader2, Package, X } from "lucide-react";
 import { masks, validators } from "@/hooks/use-masks";
 import stockService, { StockItem } from "@/services/stockServices";
 import { useCallback, useEffect, useState } from "react";
@@ -46,10 +46,21 @@ const stockSchema = z.object({
     .string()
     .max(500, "Observação deve ter no máximo 500 caracteres")
     .optional(),
+  foto: z.string().optional(),
   valor_unitario: z.number().min(0.01, "Valor deve ser maior que zero"),
 });
 
 type StockFormData = z.infer<typeof stockSchema>;
+
+const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
+
+const fileToBase64 = (file: File) =>
+  new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result));
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(file);
+  });
 
 const AddEditStock = () => {
   const navigate = useNavigate();
@@ -70,6 +81,7 @@ const AddEditStock = () => {
         fornecedor: response.fornecedor,
         imei: response.imei,
         observacao: response.observacao ?? "",
+        foto: response.foto ?? "",
         valor_unitario: Number(response.valor_unitario),
       });
     } catch (error) {
@@ -88,9 +100,12 @@ const AddEditStock = () => {
       fornecedor: "",
       imei: "",
       observacao: "",
+      foto: "",
       valor_unitario: 0,
     },
   });
+
+  const photoPreview = form.watch("foto");
 
   useEffect(() => {
     if (isEditing) {
@@ -123,6 +138,35 @@ const AddEditStock = () => {
         error?.response?.data?.message ||
           "Não foi possível salvar o produto. Tente novamente."
       );
+    }
+  };
+
+  const handleImageUpload = async (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      toast.error("Selecione um arquivo de imagem.");
+      event.target.value = "";
+      return;
+    }
+
+    if (file.size > MAX_IMAGE_SIZE) {
+      toast.error("A imagem deve ter no mÃ¡ximo 5 MB.");
+      event.target.value = "";
+      return;
+    }
+
+    try {
+      const base64 = await fileToBase64(file);
+      form.setValue("foto", base64, { shouldDirty: true });
+    } catch (error) {
+      console.error("Erro ao converter imagem:", error);
+      toast.error("NÃ£o foi possÃ­vel carregar a imagem.");
+    } finally {
+      event.target.value = "";
     }
   };
 
@@ -278,6 +322,61 @@ const AddEditStock = () => {
                           {...field}
                         />
                       </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="foto"
+                  render={() => (
+                    <FormItem>
+                      <FormLabel>Foto do produto</FormLabel>
+                      <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+                        <div className="flex h-32 w-32 shrink-0 items-center justify-center overflow-hidden rounded-md border bg-muted">
+                          {photoPreview ? (
+                            <img
+                              src={photoPreview}
+                              alt="Foto do produto"
+                              className="h-full w-full object-cover"
+                            />
+                          ) : (
+                            <Package className="h-10 w-10 text-muted-foreground" />
+                          )}
+                        </div>
+                        <div className="flex flex-col gap-2 sm:flex-row">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            className="w-full sm:w-auto"
+                            asChild
+                          >
+                            <label className="cursor-pointer">
+                              <ImagePlus className="mr-2 h-4 w-4" />
+                              Enviar foto
+                              <input
+                                type="file"
+                                accept="image/*"
+                                onChange={handleImageUpload}
+                                className="hidden"
+                              />
+                            </label>
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            className="w-full sm:w-auto"
+                            onClick={() =>
+                              form.setValue("foto", "", { shouldDirty: true })
+                            }
+                            disabled={!photoPreview}
+                          >
+                            <X className="mr-2 h-4 w-4" />
+                            Remover
+                          </Button>
+                        </div>
+                      </div>
                       <FormMessage />
                     </FormItem>
                   )}
