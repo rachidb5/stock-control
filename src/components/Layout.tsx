@@ -98,12 +98,6 @@ export function Layout({ children }: LayoutProps) {
                 </div>
 
                 <div className="min-w-0">
-                  <HeaderTimeClockCard
-                    isOpen={Boolean(openEntry)}
-                    liveWorkedLabel={liveWorkedLabel}
-                    openSinceLabel={openSinceLabel}
-                    onToggle={handleTimeClock}
-                  />
                 </div>
 
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
