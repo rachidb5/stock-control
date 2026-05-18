@@ -60,12 +60,14 @@ export function useMe() {
     }
   }, [meQuery.isError, resetSession]);
 
+  const isHydratingSession = Boolean(meQuery.data) && !isAuthenticated;
+
   return {
     ...meQuery,
     currentUser,
     isAuthenticated,
-    isCheckingAuth: meQuery.isPending,
-    isReady: !meQuery.isPending,
+    isCheckingAuth: meQuery.isPending || isHydratingSession,
+    isReady: !meQuery.isPending && !isHydratingSession,
   };
 }
 

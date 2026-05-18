@@ -5,7 +5,17 @@ import axios, {
 } from "axios";
 
 const baseURL = import.meta.env.VITE_API_URL || "https://estoque-api.fly.dev";
-let accessToken: string | null = null;
+const ACCESS_TOKEN_STORAGE_KEY = "accessToken";
+
+const getStoredAccessToken = () => {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  return localStorage.getItem(ACCESS_TOKEN_STORAGE_KEY);
+};
+
+let accessToken: string | null = getStoredAccessToken();
 let refreshRequest: Promise<string | null> | null = null;
 
 interface RetriableAxiosRequestConfig extends AxiosRequestConfig {
@@ -28,12 +38,18 @@ const api = axios.create({
 
 export const setAccessToken = (token?: string | null) => {
   accessToken = token ?? null;
-  localStorage.removeItem("accessToken");
+
+  if (!accessToken) {
+    localStorage.removeItem(ACCESS_TOKEN_STORAGE_KEY);
+    return;
+  }
+
+  localStorage.setItem(ACCESS_TOKEN_STORAGE_KEY, accessToken);
 };
 
 export const clearAuthTokens = () => {
   accessToken = null;
-  localStorage.removeItem("accessToken");
+  localStorage.removeItem(ACCESS_TOKEN_STORAGE_KEY);
 };
 
 const isAuthRoute = (url?: string) =>
