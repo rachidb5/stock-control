@@ -19,7 +19,7 @@ const roleBadgeStyles: Record<AppUser["role"], string> = {
 export function HeaderUserCard({ user, initials }: HeaderUserCardProps) {
   return (
     <Card className="overflow-hidden rounded-lg border-border/70 bg-card shadow-sm transition-shadow hover:shadow-md lg:h-16">
-      <CardContent className="flex h-full min-w-0 items-center gap-3 p-3">
+      <CardContent className="flex h-full min-w-0 items-center gap-3 p-3 mt-3">
         <div className="relative shrink-0">
           <Avatar className="h-10 w-10 border border-primary/15 ring-4 ring-primary/5">
             <AvatarFallback className="bg-primary text-xs font-semibold text-primary-foreground">
